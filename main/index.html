@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion d'Inventaire</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h1>📦 Inventaire</h1>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link active" onclick="showSection('dashboard')">
+                        📊 Tableau de Bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" onclick="showSection('products')">
+                        📋 Produits
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" onclick="showSection('low-stock')">
+                        ⚠️ Stock Faible
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" onclick="showSection('movements')">
+                        🔄 Mouvements
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" onclick="showSection('reports')">
+                        📈 Rapports
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main">
+            <!-- Header -->
+            <header>
+                <h2 id="page-title">Tableau de Bord</h2>
+                <div class="search-box">
+                    <input type="text" id="search" placeholder="Rechercher un produit...">
+                    <button class="btn btn-primary">
+                        🔍 Rechercher
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard section -->
+            <section id="dashboard" class="section-content">
+                <div class="dashboard">
+                    <div class="card">
+                        <h3>Total Produits</h3>
+                        <div class="card-value">247</div>
+                        <span class="card-badge badge-success">+12 ce mois</span>
+                    </div>
+                    <div class="card">
+                        <h3>Stock Total</h3>
+                        <div class="card-value">5,240</div>
+                        <span class="card-badge badge-success">Optimal</span>
+                    </div>
+                    <div class="card">
+                        <h3>Stock Faible</h3>
+                        <div class="card-value">18</div>
+                        <span class="card-badge badge-warning">À recompléter</span>
+                    </div>
+                    <div class="card">
+                        <h3>Rupture de Stock</h3>
+                        <div class="card-value">3</div>
+                        <span class="card-badge badge-danger">Urgent</span>
+                    </div>
+                    <div class="card">
+                        <h3>Valeur Inventaire</h3>
+                        <div class="card-value">€125,840</div>
+                        <span class="card-badge badge-success">+3.2%</span>
+                    </div>
+                    <div class="card">
+                        <h3>Rotation Moyenne</h3>
+                        <div class="card-value">45 jours</div>
+                        <span class="card-badge badge-warning">Modéré</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products section -->
+            <section id="products" class="section hide">
+                <div class="section-header">
+                    <h2>Gestion des Produits</h2>
+                    <button class="btn btn-primary" onclick="openAddProductModal()">
+                        ➕ Ajouter Produit
+                    </button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Nom</th>
+                            <th>Catégorie</th>
+                            <th>Stock Actuel</th>
+                            <th>Stock Min</th>
+                            <th>Prix</th>
+                            <th>État</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#PRD001</td>
+                            <td>Laptop HP 15"</td>
+                            <td>Électronique</td>
+                            <td>45</td>
+                            <td>10</td>
+                            <td>€799</td>
+                            <td><span class="status status-in-stock"></span> En stock</td>
+                            <td>
+                                <button class="btn btn-small" onclick="editProduct(1)">✏️</button>
+                                <button class="btn btn-danger" onclick="deleteProduct(1)">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#PRD002</td>
+                            <td>Clavier Mécanique</td>
+                            <td>Accessoires</td>
+                            <td>12</td>
+                            <td>20</td>
+                            <td>€120</td>
+                            <td><span class="status status-low"></span> Stock faible</td>
+                            <td>
+                                <button class="btn btn-small" onclick="editProduct(2)">✏️</button>
+                                <button class="btn btn-danger" onclick="deleteProduct(2)">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#PRD003</td>
+                            <td>Souris Wireless</td>
+                            <td>Accessoires</td>
+                            <td>0</td>
+                            <td>15</td>
+                            <td>€45</td>
+                            <td><span class="status status-out"></span> Rupture</td>
+                            <td>
+                                <button class="btn btn-small" onclick="editProduct(3)">✏️</button>
+                                <button class="btn btn-danger" onclick="deleteProduct(3)">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#PRD004</td>
+                            <td>Monitor 27" 4K</td>
+                            <td>Électronique</td>
+                            <td>28</td>
+                            <td>5</td>
+                            <td>€399</td>
+                            <td><span class="status status-in-stock"></span> En stock</td>
+                            <td>
+                                <button class="btn btn-small" onclick="editProduct(4)">✏️</button>
+                                <button class="btn btn-danger" onclick="deleteProduct(4)">🗑️</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Low Stock section -->
+            <section id="low-stock" class="section hide">
+                <div class="section-header">
+                    <h2>Produits en Stock Faible ou Rupture</h2>
+                    <button class="btn btn-primary" onclick="generateAlert()">
+                        📧 Générer Alerte
+                    </button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Stock Actuel</th>
+                            <th>Stock Min</th>
+                            <th>Écart</th>
+                            <th>Priorité</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clavier Mécanique</td>
+                            <td>12</td>
+                            <td>20</td>
+                            <td>-8</td>
+                            <td><span class="card-badge badge-warning">Moyen</span></td>
+                            <td><button class="btn btn-small" onclick="reorderProduct('Clavier')">Recommander</button></td>
+                        </tr>
+                        <tr>
+                            <td>Souris Wireless</td>
+                            <td>0</td>
+                            <td>15</td>
+                            <td>-15</td>
+                            <td><span class="card-badge badge-danger">Critique</span></td>
+                            <td><button class="btn btn-small" onclick="reorderProduct('Souris')">Recommander</button></td>
+                        </tr>
+                        <tr>
+                            <td>Câble USB-C</td>
+                            <td>5</td>
+                            <td>25</td>
+                            <td>-20</td>
+                            <td><span class="card-badge badge-danger">Critique</span></td>
+                            <td><button class="btn btn-small" onclick="reorderProduct('Câble')">Recommander</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Movements section -->
+            <section id="movements" class="section hide">
+                <div class="section-header">
+                    <h2>Historique des Mouvements</h2>
+                    <button class="btn btn-primary" onclick="exportMovements()">
+                        📥 Exporter
+                    </button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Produit</th>
+                            <th>Type</th>
+                            <th>Quantité</th>
+                            <th>Utilisateur</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025-12-08</td>
+                            <td>Laptop HP 15"</td>
+                            <td><span class="card-badge badge-success">Entrée</span></td>
+                            <td>+10</td>
+                            <td>Jean Dupont</td>
+                            <td>Commande reçue</td>
+                        </tr>
+                        <tr>
+                            <td>2025-12-07</td>
+                            <td>Clavier Mécanique</td>
+                            <td><span class="card-badge badge-warning">Sortie</span></td>
+                            <td>-5</td>
+                            <td>Marie Martin</td>
+                            <td>Vente client</td>
+                        </tr>
+                        <tr>
+                            <td>2025-12-06</td>
+                            <td>Monitor 27" 4K</td>
+                            <td><span class="card-badge badge-success">Entrée</span></td>
+                            <td>+3</td>
+                            <td>Pierre Bernard</td>
+                            <td>Ajustement stock</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Reports section -->
+            <section id="reports" class="section hide">
+                <div class="section-header">
+                    <h2>Rapports et Analyses</h2>
+                    <button class="btn btn-primary" onclick="generateReport()">
+                        📊 Générer Rapport
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-24);">
+                    <div class="card">
+                        <h3>Produits par Catégorie</h3>
+                        <div style="margin-top: var(--space-16); font-size: 14px;">
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Électronique:</strong> 142 produits
+                            </div>
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Accessoires:</strong> 85 produits
+                            </div>
+                            <div>
+                                <strong>Autres:</strong> 20 produits
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Valeur par Catégorie</h3>
+                        <div style="margin-top: var(--space-16); font-size: 14px;">
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Électronique:</strong> €94,500
+                            </div>
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Accessoires:</strong> €28,340
+                            </div>
+                            <div>
+                                <strong>Autres:</strong> €3,000
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Santé Inventaire</h3>
+                        <div style="margin-top: var(--space-16); font-size: 14px;">
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Score Général:</strong> 78/100
+                            </div>
+                            <div style="margin-bottom: var(--space-8);">
+                                <strong>Conformité:</strong> 92%
+                            </div>
+                            <div>
+                                <strong>Tendance:</strong> ↑ Positive
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for adding/editing products -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter/Éditer Produit</h2>
+                <button class="modal-close" onclick="closeAddProductModal()">✕</button>
+            </div>
+            <form>
+                <div class="form-group">
+                    <label for="productName">Nom du Produit</label>
+                    <input type="text" id="productName" placeholder="Ex: Laptop HP 15\"" required>
+                </div>
+                <div class="form-group">
+                    <label for="productCategory">Catégorie</label>
+                    <select id="productCategory" required>
+                        <option>Électronique</option>
+                        <option>Accessoires</option>
+                        <option>Autres</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="productStock">Stock Actuel</label>
+                    <input type="number" id="productStock" placeholder="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="productMinStock">Stock Minimum</label>
+                    <input type="number" id="productMinStock" placeholder="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice">Prix (€)</label>
+                    <input type="number" id="productPrice" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeAddProductModal()" style="background-color: #ccc; color: #000;">
+                        Annuler
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
