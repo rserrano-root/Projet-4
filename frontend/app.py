@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 import csv, os, uuid, hashlib
-from datetime import datetime, timezones
+from datetime import datetime, timezone
 from flask_cors import CORS
 import webview
 import threading
@@ -16,7 +16,7 @@ BOOKS_FILE = os.path.join(DATA_DIR, "books.csv")
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.csv")
 SALES_FILE = os.path.join(DATA_DIR, "sales.csv")
 DASH_FILE = os.path.join("dashboard.html")
-INDEX_FILE = os.path.join("index.html")
+INDEX_FILE = os.path.join(html_file)
 APP_FILE = os.path.join("app.js")
 STYLES_FILE = os.path.join("styles.css")
 SESSIONS = {}

@@ -2,13 +2,13 @@ const API_BASE = "/api";
 
 const token = localStorage.getItem("token");
 if (!token) {
-  window.location.href = "index.html";
+  globalThis.location.href = "index.html";
 }
 
 const logoutBtn = document.getElementById("logout-btn");
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("token");
-  window.location.href = "index.html";
+  globalThis.location.href = "index.html";
 });
 
 const booksTableBody = document.querySelector("#books-table tbody");
@@ -22,7 +22,7 @@ async function apiGet(path) {
   });
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.location.href = "index.html";
+    globalThis.location.href = "index.html";
   }
   return res.json();
 }
@@ -38,7 +38,7 @@ async function apiPost(path, body) {
   });
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.location.href = "index.html";
+    globalThis.location.href = "index.html";
   }
   return res.json().then(data => ({ ok: res.ok, data }));
 }
@@ -51,7 +51,7 @@ async function loadBooks() {
     tr.innerHTML = `
       <td>${b.name}</td>
       <td>${b.genre}</td>
-      <td>${parseFloat(b.price).toFixed(2)} €</td>
+      <td>${Number.parseFloat(b.price).toFixed(2)} €</td>
       <td>${b.stock}</td>
       <td>
         <input type="number" min="1" value="1" class="qty-input">
@@ -81,7 +81,7 @@ booksTableBody.addEventListener("click", async (e) => {
   if (e.target.classList.contains("order-btn")) {
     const bookId = e.target.dataset.id;
     const qtyInput = e.target.parentElement.querySelector(".qty-input");
-    const quantity = parseInt(qtyInput.value, 10) || 1;
+    const quantity = Number.parseInt(qtyInput.value, 10) || 1;
     const { ok, data } = await apiPost("/orders", { book_id: bookId, quantity });
     if (!ok) {
       alert(data.error || "Erreur commande");
