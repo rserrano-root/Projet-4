@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const tabLogin = document.getElementById("tab-login");
 const tabRegister = document.getElementById("tab-register");
@@ -40,6 +40,7 @@ loginForm.addEventListener("submit", async (e) => {
   }
   localStorage.setItem("token", data.token);
   window.location.href = "dashboard.html";
+
 });
 
 registerForm.addEventListener("submit", async (e) => {

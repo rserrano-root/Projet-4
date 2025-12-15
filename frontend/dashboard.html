@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Librairie - Dashboard</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
@@ -15,8 +15,9 @@
     <section class="card">
       <h2>Ajouter un livre</h2>
       <form id="book-form">
-        <input type="text" id="book-title" placeholder="Titre" required>
+        <input type="text" id="book-name" placeholder="Name" required>
         <input type="text" id="book-author" placeholder="Auteur" required>
+        <input type="text" id="book-genre" placeholder="Genre" required>
         <input type="number" id="book-price" placeholder="Prix" step="0.01" required>
         <input type="number" id="book-stock" placeholder="Stock initial" required>
         <button type="submit">Ajouter</button>
@@ -30,6 +31,7 @@
           <tr>
             <th>Titre</th>
             <th>Auteur</th>
+            <th>Genre</th>
             <th>Prix</th>
             <th>Stock</th>
             <th>Commander</th>
@@ -46,6 +48,6 @@
     </section>
   </main>
 
-  <script src="js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

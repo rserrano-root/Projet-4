@@ -1,13 +1,14 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
+
 const token = localStorage.getItem("token");
 if (!token) {
-  window.location.href = "index.html";
+  globalThis.location.href = "index.html";
 }
 
 const logoutBtn = document.getElementById("logout-btn");
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("token");
-  window.location.href = "index.html";
+  globalThis.location.href = "index.html";
 });
 
 const booksTableBody = document.querySelector("#books-table tbody");
@@ -21,7 +22,7 @@ async function apiGet(path) {
   });
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.location.href = "index.html";
+    globalThis.location.href = "index.html";
   }
   return res.json();
 }
@@ -37,10 +38,37 @@ async function apiPost(path, body) {
   });
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.location.href = "index.html";
+    globalThis.location.href = "index.html";
   }
   return res.json().then(data => ({ ok: res.ok, data }));
 }
+
+async function loadCurrentUser() {
+  const res = await fetch(`${API_BASE}/me`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    globalThis.location.href = "index.html";
+    return;
+  }
+
+  const user = await res.json();
+
+  const adminBtn = document.getElementById("admin-btn"); // bouton à cacher/afficher
+  if (adminBtn) {
+    if (user.is_admin) {
+      adminBtn.style.display = "block";   // visible pour admin
+    } else {
+      adminBtn.style.display = "none";    // caché pour les autres
+    }
+  }
+  loadCurrentUser();
+}
+
+
+
 
 async function loadBooks() {
   const books = await apiGet("/books");
@@ -48,14 +76,19 @@ async function loadBooks() {
   books.forEach(b => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${b.title}</td>
+      <td>${b.name}</td>
       <td>${b.author}</td>
-      <td>${parseFloat(b.price).toFixed(2)} €</td>
+      <td>${b.genre}</td>
+      <td>${Number.parseFloat(b.price).toFixed(2)} €</td>
       <td>${b.stock}</td>
       <td>
         <input type="number" min="1" value="1" class="qty-input">
         <button class="order-btn" data-id="${b.id}">Commander</button>
       </td>
+      <td>
+        <input type="number" min="1" value="1" class="qty-input">
+        <button class="addbooks-btn" data-id="${b.id}">Ajouter du stock</button>
+      </td>      
     `;
     booksTableBody.appendChild(tr);
   });
@@ -63,11 +96,12 @@ async function loadBooks() {
 
 bookForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const title = document.getElementById("book-title").value;
+  const name = document.getElementById("book-name").value;
   const author = document.getElementById("book-author").value;
+  const genre = document.getElementById("book-genre").value;
   const price = document.getElementById("book-price").value;
   const stock = document.getElementById("book-stock").value;
-  const { ok, data } = await apiPost("/books", { title, author, price, stock });
+  const { ok, data } = await apiPost("/books", { name, author, genre, price, stock });
   if (!ok) {
     alert(data.error || "Erreur ajout livre");
     return;
@@ -80,7 +114,7 @@ booksTableBody.addEventListener("click", async (e) => {
   if (e.target.classList.contains("order-btn")) {
     const bookId = e.target.dataset.id;
     const qtyInput = e.target.parentElement.querySelector(".qty-input");
-    const quantity = parseInt(qtyInput.value, 10) || 1;
+    const quantity = Number.parseInt(qtyInput.value, 10) || 1;
     const { ok, data } = await apiPost("/orders", { book_id: bookId, quantity });
     if (!ok) {
       alert(data.error || "Erreur commande");
@@ -89,6 +123,17 @@ booksTableBody.addEventListener("click", async (e) => {
     alert("Commande enregistrée.");
     loadBooks();
     loadStats();
+    loadCurrentUser();
+  }
+  if (e.target.classList.contains("addbooks-btn")) {
+    const bookId = e.target.dataset.id;
+    const qtyInput = e.target.parentElement.querySelector(".qty-input");
+    const quantity = Number.parseInt(qtyInput.value, 10) || 1;
+    const { ok, data } = await apiPost("/books", { id: bookId, stock: quantity, add_stock: true });
+    if (!ok) {
+      alert(data.error || "Erreur ajout stock");
+      return;
+    }
   }
 });
 
@@ -100,3 +145,4 @@ async function loadStats() {
 
 loadBooks();
 loadStats();
+loadCurrentUser();
