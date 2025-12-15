@@ -108,7 +108,6 @@ def auth_required(func):
             del SESSIONS[token]
             return jsonify({"error": "Session expirée"}), 401
         request.user_id = SESSIONS[token]["user_id"]
-        request.user_email = SESSIONS[token]["email"]
         return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
     return wrapper
@@ -118,19 +117,14 @@ def register():
     data = request.get_json()
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
-
     if not email or not password:
         return jsonify({"error": "Champs manquants"}), 400
-
     if get_user_by_email(email):
         return jsonify({"error": "Email déjà utilisé"}), 400
-
     user_id = users_id_count()  
-
     with open(USERS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([user_id, email, hash_password(password)])
-
     return jsonify({"message": "Inscription réussie"}), 201
 
 
@@ -154,20 +148,6 @@ def login():
         "expires": datetime.now(timezone.utc) + timedelta(hours=2)
     }
     return jsonify({"token": token}), 200
-
-
-@app.route("/api/me", methods=["GET"])
-@auth_required
-def me():
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    session_data = SESSIONS[token]
-    email = session_data["email"]
-    is_admin = (email == "admin@admin.com")
-    return jsonify({
-        "user_id": session_data["user_id"],
-        "email": email,
-        "is_admin": is_admin
-    }), 200
 
 
 @app.route("/api/books", methods=["GET"])

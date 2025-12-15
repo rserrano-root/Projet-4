@@ -43,32 +43,6 @@ async function apiPost(path, body) {
   return res.json().then(data => ({ ok: res.ok, data }));
 }
 
-async function loadCurrentUser() {
-  const res = await fetch(`${API_BASE}/me`, {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-
-  if (res.status === 401) {
-    localStorage.removeItem("token");
-    globalThis.location.href = "index.html";
-    return;
-  }
-
-  const user = await res.json();
-
-  const adminBtn = document.getElementById("admin-btn"); // bouton à cacher/afficher
-  if (adminBtn) {
-    if (user.is_admin) {
-      adminBtn.style.display = "block";   // visible pour admin
-    } else {
-      adminBtn.style.display = "none";    // caché pour les autres
-    }
-  }
-  loadCurrentUser();
-}
-
-
-
 
 async function loadBooks() {
   const books = await apiGet("/books");
@@ -123,7 +97,6 @@ booksTableBody.addEventListener("click", async (e) => {
     alert("Commande enregistrée.");
     loadBooks();
     loadStats();
-    loadCurrentUser();
   }
   if (e.target.classList.contains("addbooks-btn")) {
     const bookId = e.target.dataset.id;
@@ -145,4 +118,3 @@ async function loadStats() {
 
 loadBooks();
 loadStats();
-loadCurrentUser();
