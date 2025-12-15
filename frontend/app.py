@@ -6,7 +6,6 @@ import webview
 import threading
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
-
 app = Flask(__name__)
 CORS(app)
 
@@ -21,10 +20,6 @@ APP_FILE = os.path.join("app.js")
 STYLES_FILE = os.path.join("styles.css")
 SESSIONS = {}
 
-books_id = 0
-orders_id = 0
-sales_id = 0
-users_id = 0
 
 def books_id_count ():
     global books_id
@@ -99,6 +94,14 @@ def get_user_by_email(email):
                 return row
     return None
 
+def get_book_by_name(name):
+    with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            if row["name"] == name:
+                return row
+    return None
+
 def auth_required(func):
     def wrapper(*args, **kwargs):
         token = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -131,16 +134,12 @@ def register():
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
-    print("DATA REÇU :", data)
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
-    print("EMAIL =", repr(email), "PWD =", repr(password))
     user = get_user_by_email(email)
-    print("USER TROUVÉ :", user)
     if not user or user["password"] != hash_password(password):
         print("LOGIN ÉCHEC : mauvais identifiants")
         return jsonify({"error": "Identifiants invalides"}), 401
-
     token = str(uuid.uuid4())
     SESSIONS[token] = {
         "user_id": user["id"],
@@ -148,6 +147,13 @@ def login():
         "expires": datetime.now(timezone.utc) + timedelta(hours=2)
     }
     return jsonify({"token": token}), 200
+
+@app.route("/api/me", methods=["GET"])
+@auth_required
+def get_current_user():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user_email = SESSIONS[token]["email"]
+    return jsonify({"email": user_email}), 200
 
 
 @app.route("/api/books", methods=["GET"])
@@ -170,6 +176,8 @@ def add_book():
     price = float(data.get("price", 0))
     stock = int(data.get("stock", 0))
     book_id = books_id_count()
+    if get_book_by_name(name):
+        return jsonify({"error": "name déjà utilisé"}), 400
     with open(BOOKS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([book_id, name, author, genre, price, stock])
@@ -181,7 +189,6 @@ def create_order():
     data = request.get_json()
     book_id = data.get("book_id")
     quantity = int(data.get("quantity", 1))
-    # lire les livres pour trouver prix et stock
     books = []
     with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
         r = csv.DictReader(f)
@@ -192,7 +199,6 @@ def create_order():
         return jsonify({"error": "Livre introuvable"}), 404
     if int(book["stock"]) < quantity:
         return jsonify({"error": "Stock insuffisant"}), 400
-    # maj stock
     for b in books:
         if b["id"] == book_id:
             b["stock"] = str(int(b["stock"]) - quantity)
@@ -200,7 +206,6 @@ def create_order():
         w = csv.DictWriter(f, fieldnames=["id", "name", "author", "genre", "price", "stock"])
         w.writeheader()
         w.writerows(books)
-    # enregistrement commande et vente
     order_id = orders_id_count()
     date_str = datetime.now(timezone.utc).isoformat()
     with open(ORDERS_FILE, "a", newline="", encoding="utf-8") as f:
@@ -216,20 +221,19 @@ def create_order():
 @auth_required
 def add_books():
     data = request.get_json()
-    book_id = data.get("book_id")
+    book_id = str(data.get("book_id"))
     quantity = int(data.get("quantity", 1))
-    # lire les livres pour trouver le stock
     books = []
     with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
         r = csv.DictReader(f)
         for row in r:
             books.append(row)
-    book = next((b for b in books if b["id"] == book_id), None)
+    book = next((b for b in books if str(b["id"]) == book_id), None)
     if not book:
         return jsonify({"error": "Livre introuvable"}), 404
     # maj stock
     for b in books:
-        if b["id"] == book_id:
+        if str(b["id"]) == book_id:
             b["stock"] = str(int(b["stock"]) + quantity)
     with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["id", "name", "author", "genre", "price", "stock"])

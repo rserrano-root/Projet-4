@@ -1,20 +1,20 @@
 const API_BASE = "/api";
-
 const token = localStorage.getItem("token");
+
 if (!token) {
   globalThis.location.href = "index.html";
 }
-
-const logoutBtn = document.getElementById("logout-btn");
-logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem("token");
-  globalThis.location.href = "index.html";
-});
 
 const booksTableBody = document.querySelector("#books-table tbody");
 const bookForm = document.getElementById("book-form");
 const statItems = document.getElementById("stat-items");
 const statRevenue = document.getElementById("stat-revenue");
+const logoutBtn = document.getElementById("logout-btn");
+
+logoutBtn.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  globalThis.location.href = "index.html";
+});
 
 async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -53,19 +53,69 @@ async function loadBooks() {
       <td>${b.name}</td>
       <td>${b.author}</td>
       <td>${b.genre}</td>
-      <td>${Number.parseFloat(b.price).toFixed(2)} €</td>
+      <td>${b.price} €</td>
       <td>${b.stock}</td>
       <td>
         <input type="number" min="1" value="1" class="qty-input">
         <button class="order-btn" data-id="${b.id}">Commander</button>
       </td>
-      <td>
-        <input type="number" min="1" value="1" class="qty-input">
-        <button class="addbooks-btn" data-id="${b.id}">Ajouter du stock</button>
-      </td>      
+      <td class="admin-actions"></td>    
     `;
-    booksTableBody.appendChild(tr);
+
+      const adminActionsCell = tr.querySelector(".admin-actions");
+      const addStockBtn = document.createElement("button");
+      addStockBtn.textContent = "Ajouter stock";
+      addStockBtn.classList.add("btn-add-stock");
+      addStockBtn.id = `btn-stock-${b.id}`;
+      addStockBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const quantity = prompt("Quantité à ajouter :");
+          if (quantity && !isNaN(quantity) && parseInt(quantity) > 0) {
+              addStock(b.id, parseInt(quantity));
+          }
+      });
+      
+      adminActionsCell.appendChild(addStockBtn);
+      booksTableBody.appendChild(tr);
   });
+  
+  await checkAdminAndShowButton();
+}
+
+async function addStock(bookId, quantity) {
+    console.log("Envoi requête addStock:", { book_id: bookId, quantity: quantity });
+    
+    const result = await apiPost("/addbooks", {
+        book_id: bookId,
+        quantity: quantity
+    });
+    
+    console.log("Réponse du serveur:", result);
+    
+    if (result.ok) {
+        alert("Stock mis à jour !");
+        await loadBooks();
+        await loadStats();
+    } else {
+        alert("Erreur : " + (result.data.error || "Erreur inconnue"));
+    }
+}
+
+async function checkAdminAndShowButton() {
+    const user = await apiGet("/me");
+    const adminEmail = "admin@admin.com";
+    
+    const addStockBtns = document.querySelectorAll(".btn-add-stock");
+    
+    if (user.email !== adminEmail) {
+        addStockBtns.forEach(btn => btn.style.display = "none");
+    }
+}
+
+async function loadStats() {
+    const stats = await apiGet("/stats");
+    statItems.textContent = stats.total_items;
+    statRevenue.textContent = stats.total_revenue.toFixed(2);
 }
 
 bookForm.addEventListener("submit", async (e) => {
@@ -76,12 +126,14 @@ bookForm.addEventListener("submit", async (e) => {
   const price = document.getElementById("book-price").value;
   const stock = document.getElementById("book-stock").value;
   const { ok, data } = await apiPost("/books", { name, author, genre, price, stock });
-  if (!ok) {
-    alert(data.error || "Erreur ajout livre");
-    return;
-  }
-  bookForm.reset();
-  loadBooks();
+  const result = await apiPost("/books", { name, author, genre, price, stock });
+    
+    if (result.ok) {
+        bookForm.reset();
+        init();
+    } else {
+        alert("Erreur : " + result.data.error);
+    }
 });
 
 booksTableBody.addEventListener("click", async (e) => {
@@ -95,8 +147,7 @@ booksTableBody.addEventListener("click", async (e) => {
       return;
     }
     alert("Commande enregistrée.");
-    loadBooks();
-    loadStats();
+    init();
   }
   if (e.target.classList.contains("addbooks-btn")) {
     const bookId = e.target.dataset.id;
@@ -116,5 +167,10 @@ async function loadStats() {
   statRevenue.textContent = stats.total_revenue.toFixed(2);
 }
 
-loadBooks();
-loadStats();
+async function init() {
+    await loadBooks();
+    await checkAdminAndShowButton();
+    await loadStats();
+}
+
+init();

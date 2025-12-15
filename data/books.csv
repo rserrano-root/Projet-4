@@ -1,4 +1,4 @@
 id,name,author,genre,price,stock
-1,LoTR,JRR Tolkien,Fantasy,25.0,123456789
-2,LoTR,,Fantasy,25.0,210
-3,LoTR,JRR Tolkien,Fantasy,25.0,110
+1,LoTR,JRR Tolkien,Fantasy,25.0,450
+2,LoTR,JRR Tolkien,Fantasy,25.0,210
+3,LoTR,JRR Tolkien,Fantasy,25.0,40
