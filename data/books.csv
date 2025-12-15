@@ -1,4 +1,2 @@
-id,name,genre,price,stock
-1,harry potter,fantasy,150.0,42
-2,truc,fantasy,123.0,88
-3,rgeer,dssds,54541.0,1289
+id,name,author,genre,price,stock
+

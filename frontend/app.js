@@ -50,6 +50,7 @@ async function loadBooks() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${b.name}</td>
+      <td>${b.author}</td>
       <td>${b.genre}</td>
       <td>${Number.parseFloat(b.price).toFixed(2)} €</td>
       <td>${b.stock}</td>
@@ -57,6 +58,10 @@ async function loadBooks() {
         <input type="number" min="1" value="1" class="qty-input">
         <button class="order-btn" data-id="${b.id}">Commander</button>
       </td>
+      <td>
+        <input type="number" min="1" value="1" class="qty-input">
+        <button class="addbooks-btn" data-id="${b.id}">Ajouter du stock</button>
+      </td>      
     `;
     booksTableBody.appendChild(tr);
   });
@@ -90,6 +95,16 @@ booksTableBody.addEventListener("click", async (e) => {
     alert("Commande enregistrée.");
     loadBooks();
     loadStats();
+  }
+  if (e.target.classList.contains("addbooks-btn")) {
+    const bookId = e.target.dataset.id;
+    const qtyInput = e.target.parentElement.querySelector(".qty-input");
+    const quantity = Number.parseInt(qtyInput.value, 10) || 1;
+    const { ok, data } = await apiPost("/books", { id: bookId, stock: quantity, add_stock: true });
+    if (!ok) {
+      alert(data.error || "Erreur ajout stock");
+      return;
+    }
   }
 });
 

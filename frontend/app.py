@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 import csv, os, uuid, hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask_cors import CORS
-import webview
+import webview  
 import threading
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
@@ -154,7 +154,7 @@ def login():
     return jsonify({"token": token}), 200
 
 @app.route("/api/books", methods=["GET"])
-#@auth_required
+@auth_required
 def list_books():
     books = []
     with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
@@ -164,21 +164,22 @@ def list_books():
     return jsonify(books), 200
 
 @app.route("/api/books", methods=["POST"])
-#@auth_required
+@auth_required
 def add_book():
     data = request.get_json()
     name = data.get("name", "").strip()
+    author = data.get("author", "").strip()
     genre = data.get("genre", "").strip()
     price = float(data.get("price", 0))
     stock = int(data.get("stock", 0))
     book_id = books_id_count()
     with open(BOOKS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow([book_id, name, genre, price, stock])
+        w.writerow([book_id, name, author, genre, price, stock])
     return jsonify({"message": "Livre ajouté"}), 201
 
 @app.route("/api/orders", methods=["POST"])
-#@auth_required
+@auth_required
 def create_order():
     data = request.get_json()
     book_id = data.get("book_id")
@@ -214,8 +215,34 @@ def create_order():
         w.writerow([order_id, book_id, quantity, total_price, date_str])
     return jsonify({"message": "Commande enregistrée"}), 201
 
+@app.route("/api/addbooks", methods=["POST"])
+@auth_required
+def add_books():
+    data = request.get_json()
+    book_id = data.get("book_id")
+    quantity = int(data.get("quantity", 1))
+    # lire les livres pour trouver le stock
+    books = []
+    with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            books.append(row)
+    book = next((b for b in books if b["id"] == book_id), None)
+    if not book:
+        return jsonify({"error": "Livre introuvable"}), 404
+    # maj stock
+    for b in books:
+        if b["id"] == book_id:
+            b["stock"] = str(int(b["stock"]) + quantity)
+    with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["id", "name", "genre", "price", "stock"])
+        w.writeheader()
+        w.writerows(books)
+    return jsonify({"message": "Stock mis à jour"}), 201
+
+
 @app.route("/api/stats", methods=["GET"])
-#@auth_required
+@auth_required
 def stats():
     total_revenue = 0.0
     total_items = 0
