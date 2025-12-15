@@ -43,6 +43,33 @@ async function apiPost(path, body) {
   return res.json().then(data => ({ ok: res.ok, data }));
 }
 
+async function loadCurrentUser() {
+  const res = await fetch(`${API_BASE}/me`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    globalThis.location.href = "index.html";
+    return;
+  }
+
+  const user = await res.json();
+
+  const adminBtn = document.getElementById("admin-btn"); // bouton à cacher/afficher
+  if (adminBtn) {
+    if (user.is_admin) {
+      adminBtn.style.display = "block";   // visible pour admin
+    } else {
+      adminBtn.style.display = "none";    // caché pour les autres
+    }
+  }
+  loadCurrentUser();
+}
+
+
+
+
 async function loadBooks() {
   const books = await apiGet("/books");
   booksTableBody.innerHTML = "";
@@ -70,10 +97,11 @@ async function loadBooks() {
 bookForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("book-name").value;
+  const author = document.getElementById("book-author").value;
   const genre = document.getElementById("book-genre").value;
   const price = document.getElementById("book-price").value;
   const stock = document.getElementById("book-stock").value;
-  const { ok, data } = await apiPost("/books", { name, genre, price, stock });
+  const { ok, data } = await apiPost("/books", { name, author, genre, price, stock });
   if (!ok) {
     alert(data.error || "Erreur ajout livre");
     return;
@@ -95,6 +123,7 @@ booksTableBody.addEventListener("click", async (e) => {
     alert("Commande enregistrée.");
     loadBooks();
     loadStats();
+    loadCurrentUser();
   }
   if (e.target.classList.contains("addbooks-btn")) {
     const bookId = e.target.dataset.id;
@@ -116,3 +145,4 @@ async function loadStats() {
 
 loadBooks();
 loadStats();
+loadCurrentUser();

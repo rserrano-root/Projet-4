@@ -79,7 +79,7 @@ def init_csv_files():
     if not os.path.exists(BOOKS_FILE):
         with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
-            w.writerow(["id", "name", "genre", "price", "stock"])
+            w.writerow(["id", "name", "author", "genre", "price", "stock"])
     if not os.path.exists(ORDERS_FILE):
         with open(ORDERS_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
@@ -108,6 +108,7 @@ def auth_required(func):
             del SESSIONS[token]
             return jsonify({"error": "Session expirée"}), 401
         request.user_id = SESSIONS[token]["user_id"]
+        request.user_email = SESSIONS[token]["email"]
         return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
     return wrapper
@@ -149,9 +150,25 @@ def login():
     token = str(uuid.uuid4())
     SESSIONS[token] = {
         "user_id": user["id"],
+        "email": user["email"],
         "expires": datetime.now(timezone.utc) + timedelta(hours=2)
     }
     return jsonify({"token": token}), 200
+
+
+@app.route("/api/me", methods=["GET"])
+@auth_required
+def me():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    session_data = SESSIONS[token]
+    email = session_data["email"]
+    is_admin = (email == "admin@admin.com")
+    return jsonify({
+        "user_id": session_data["user_id"],
+        "email": email,
+        "is_admin": is_admin
+    }), 200
+
 
 @app.route("/api/books", methods=["GET"])
 @auth_required
@@ -200,7 +217,7 @@ def create_order():
         if b["id"] == book_id:
             b["stock"] = str(int(b["stock"]) - quantity)
     with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["id", "name", "genre", "price", "stock"])
+        w = csv.DictWriter(f, fieldnames=["id", "name", "author", "genre", "price", "stock"])
         w.writeheader()
         w.writerows(books)
     # enregistrement commande et vente
@@ -235,7 +252,7 @@ def add_books():
         if b["id"] == book_id:
             b["stock"] = str(int(b["stock"]) + quantity)
     with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["id", "name", "genre", "price", "stock"])
+        w = csv.DictWriter(f, fieldnames=["id", "name", "author", "genre", "price", "stock"])
         w.writeheader()
         w.writerows(books)
     return jsonify({"message": "Stock mis à jour"}), 201
