@@ -125,7 +125,7 @@ bookForm.addEventListener("submit", async (e) => {
   const genre = document.getElementById("book-genre").value;
   const price = document.getElementById("book-price").value;
   const stock = document.getElementById("book-stock").value;
-  const { ok, data } = await apiPost("/books", { name, author, genre, price, stock });
+//const { ok, data } = await apiPost("/books", { name, author, genre, price, stock });
   const result = await apiPost("/books", { name, author, genre, price, stock });
     
     if (result.ok) {

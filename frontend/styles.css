@@ -114,6 +114,15 @@ th, td {
   border-bottom: 1px solid #eee;
 }
 
+td {
+  text-align: center;
+}
+
+tbody > tr:nth-of-type(even) {
+  background-color: rgb(237 238 242);
+}
+
+
 .order-btn {
   padding: 4px 8px;
   border: none;

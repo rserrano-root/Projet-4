@@ -20,6 +20,21 @@ APP_FILE = os.path.join("app.js")
 STYLES_FILE = os.path.join("styles.css")
 SESSIONS = {}
 
+def load_books():
+    books = []
+    with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            books.append(row)
+    return books
+
+def load_users():
+    users = []
+    with open(USERS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            users.append(row)
+    return users
 
 def books_id_count ():
     global books_id
@@ -87,20 +102,20 @@ def init_csv_files():
 init_csv_files()
 
 def get_user_by_email(email):
-    with open(USERS_FILE, newline="", encoding="utf-8") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            if row["email"] == email:
-                return row
+    users = load_users()
+    for row in users:
+        if row["email"] == email:
+            return row
     return None
 
 def get_book_by_name(name):
-    with open(BOOKS_FILE, newline="", encoding="utf-8") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            if row["name"] == name:
-                return row
+    name_normalized = name.lower().strip()
+    books = load_books()
+    for row in books:
+        if row["name"].lower().strip() == name_normalized:
+            return row
     return None
+
 
 def auth_required(func):
     def wrapper(*args, **kwargs):
@@ -166,6 +181,7 @@ def list_books():
             books.append(row)
     return jsonify(books), 200
 
+
 @app.route("/api/books", methods=["POST"])
 @auth_required
 def add_book():
@@ -175,13 +191,16 @@ def add_book():
     genre = data.get("genre", "").strip()
     price = float(data.get("price", 0))
     stock = int(data.get("stock", 0))
-    book_id = books_id_count()
+    if not name or not author or not genre or price < 0 or stock < 0:
+        return jsonify({"error": "Tous les champs sont requis et valides"}), 400
     if get_book_by_name(name):
-        return jsonify({"error": "name déjà utilisé"}), 400
+        return jsonify({"error": "Un livre avec ce nom existe déjà"}), 400
+    book_id = books_id_count()
     with open(BOOKS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([book_id, name, author, genre, price, stock])
-    return jsonify({"message": "Livre ajouté"}), 201
+    return jsonify({"message": "Livre ajouté avec succès", "id": book_id}), 201
+
 
 @app.route("/api/orders", methods=["POST"])
 @auth_required
@@ -277,7 +296,6 @@ def run_flask():
     app.run(port=5000, debug=True, use_reloader=False)
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
     t = threading.Thread(target=run_flask, daemon=True)
     t.start()
     window = webview.create_window('Librairie App', 'http://127.0.0.1:5000')
