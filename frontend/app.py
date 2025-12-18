@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify, send_from_directory
-import csv, os, uuid, hashlib, binascii
 from datetime import datetime, timezone, timedelta
+import csv, os, uuid, hashlib, binascii
 from flask_cors import CORS
 import webview  
 import threading
+import requests
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
 app = Flask(__name__)
@@ -104,7 +105,7 @@ def init_csv_files():
     if not os.path.exists(ORDERS_FILE):
         with open(ORDERS_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
-            w.writerow(["id", "userid", "book_id", "quantity", "date"])
+            w.writerow(["id", "user_id", "book_id", "quantity", "date"])
     if not os.path.exists(SALES_FILE):
         with open(SALES_FILE, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
@@ -148,7 +149,7 @@ def auth_required(func):
         if SESSIONS[token]["expires"] < datetime.now(timezone.utc):
             del SESSIONS[token]
             return jsonify({"error": "Session expirée"}), 401
-        request.userid = SESSIONS[token]["userid"]
+        request.user_id = SESSIONS[token]["user_id"]
         return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
     return wrapper
@@ -159,11 +160,15 @@ def admin_required(func):
     def wrapper(*args, **kwargs):
         token = request.headers.get("Authorization", "").replace("Bearer ", "")
         session = SESSIONS.get(token)
+        endpoint = request.path
         if not session or session["email"] != ADMIN_EMAIL:
+            uid = session["user_id"] if session else None
+            write_log("WARNING", endpoint, "admin_forbidden", "accès non admin", user_id=uid)
             return jsonify({"error": "Accès réservé aux admins"}), 403
         return func(*args, **kwargs)
     wrapper.__name__ = func.__name__
     return wrapper
+
 
 
 @app.route("/api/register", methods=["POST"])
@@ -171,17 +176,38 @@ def register():
     data = request.get_json()
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
+
+    sha_password = hashlib.sha1(password.encode()).hexdigest()
+    sha_prefix = sha_password[0:5]
+    sha_postfix = sha_password[5:].upper()
+
+    url = "https://api.pwnedpasswords.com/range/" + sha_prefix
+
+    payload={}
+    headers={}
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    pwnd_dict = {}
+
+    pwnd_list = response.text.split("\r\n")
+    for pwnd_pass in pwnd_list:
+        pwnd_hash = pwnd_pass.split(":")
+        pwnd_dict[pwnd_hash[0]] = pwnd_hash[1]
+
     if not email or not password:
         return jsonify({"error": "Champs manquants"}), 400
     if get_user_by_email(email):
         return jsonify({"error": "Email déjà utilisé"}), 400
-    userid = users_id_count()
+    user_id = users_id_count()
     salt = generate_salt()
     password_hash = hash_password(password, salt)
-    with open(USERS_FILE, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow([userid, email, salt, password_hash])
-    return jsonify({"message": "Inscription réussie"}), 201
+    if sha_postfix in pwnd_dict.keys():
+        return jsonify({"error": "Mot de passe compromis"}), 400
+    else:
+        with open(USERS_FILE, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow([user_id, email, salt, password_hash])
+        return jsonify({"message": "Inscription réussie"}), 201
 
 
 
@@ -192,17 +218,20 @@ def login():
     password = data.get("password", "").strip()
     user = get_user_by_email(email)
     if not user:
+        write_log("WARNING", "/api/login", "login_failed", f"email={email}")
         return jsonify({"error": "Identifiants invalides"}), 401
     salt = user["salt"]
     expected_hash = user["password"]
     if hash_password(password, salt) != expected_hash:
+        write_log("WARNING", "/api/login", "login_failed", f"email={email}")
         return jsonify({"error": "Identifiants invalides"}), 401
     token = str(uuid.uuid4())
     SESSIONS[token] = {
-        "userid": user["id"],
+        "user_id": user["id"],
         "email": user["email"],
-        "expires": datetime.now(timezone.utc) + timedelta(hours=2),
+        "expires": datetime.now(timezone.utc) + timedelta(hours=2)
     }
+    write_log("INFO", "/api/login", "login_success", f"email={email}", user_id=user["id"])
     return jsonify({"token": token}), 200
 
 
@@ -224,7 +253,6 @@ def list_books():
             books.append(row)
     return jsonify(books), 200
 
-
 @app.route("/api/books", methods=["POST"])
 @auth_required
 @admin_required
@@ -235,15 +263,19 @@ def add_book():
     genre = data.get("genre", "").strip()
     price = float(data.get("price", 0))
     stock = int(data.get("stock", 0))
-    if not name or not author or not genre or price < 0 or stock < 0:
+    if not name or not author or not genre or price <= 0 or stock <= 0:
+        write_log("WARNING", "/api/books", "add_book_invalid", "champs manquants/invalides", user_id=request.user_id)
         return jsonify({"error": "Tous les champs sont requis et valides"}), 400
     if get_book_by_name(name):
+        write_log("WARNING", "/api/books", "add_book_duplicate", f"name={name}", user_id=request.user_id)
         return jsonify({"error": "Un livre avec ce nom existe déjà"}), 400
     book_id = books_id_count()
     with open(BOOKS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([book_id, name, author, genre, price, stock])
+    write_log("INFO", "/api/books", "add_book_success", f"id={book_id},name={name}", user_id=request.user_id)
     return jsonify({"message": "Livre ajouté avec succès", "id": book_id}), 201
+
 
 
 @app.route("/api/orders", methods=["POST"])
@@ -273,7 +305,7 @@ def create_order():
     date_str = datetime.now(timezone.utc).isoformat()
     with open(ORDERS_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow([order_id, request.userid, book_id, quantity, date_str])
+        w.writerow([order_id, request.user_id, book_id, quantity, date_str])
     total_price = float(book["price"]) * quantity
     with open(SALES_FILE, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)

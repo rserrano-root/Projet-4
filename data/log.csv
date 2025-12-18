@@ -1,1 +1,8 @@
 timestamp,level,user_id,endpoint,action,details
+2025-12-18T13:17:22.679985+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-18T13:19:24.732444+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-18T13:21:05.139125+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-18T13:21:06.298897+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-18T13:21:07.042763+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-18T13:21:07.963454+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-18T13:26:17.443041+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
