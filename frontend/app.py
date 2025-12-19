@@ -2,9 +2,12 @@ from flask import Flask, request, jsonify, send_from_directory
 from datetime import datetime, timezone, timedelta
 import csv, os, uuid, hashlib, binascii
 from flask_cors import CORS
-import webview  
+import pandas as pd
 import threading
 import requests
+import webview  
+
+
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
 app = Flask(__name__)
@@ -21,6 +24,8 @@ APP_FILE = os.path.join("app.js")
 STYLES_FILE = os.path.join("styles.css")
 LOG_FILE = os.path.join(DATA_DIR, "log.csv")
 SESSIONS = {}
+
+
 
 def load_books():
     books = []
@@ -78,6 +83,7 @@ def users_id_count():
     
 os.makedirs(DATA_DIR, exist_ok=True)
 
+
 #hachage de mot de passe
 def hash_password(password: str, salt: str) -> str:
     dk = hashlib.pbkdf2_hmac(
@@ -115,8 +121,8 @@ def init_csv_files():
             w = csv.writer(f)
             w.writerow(["timestamp", "level", "user_id", "endpoint", "action", "details"])
 
-
 init_csv_files()
+
 
 def get_user_by_email(email):
     users = load_users()
@@ -170,7 +176,7 @@ def admin_required(func):
     return wrapper
 
 
-
+#Inscription
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -210,7 +216,7 @@ def register():
         return jsonify({"message": "Inscription réussie"}), 201
 
 
-
+#Connexion
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -253,6 +259,7 @@ def list_books():
             books.append(row)
     return jsonify(books), 200
 
+#Ajout de livre
 @app.route("/api/books", methods=["POST"])
 @auth_required
 @admin_required
@@ -276,8 +283,19 @@ def add_book():
     write_log("INFO", "/api/books", "add_book_success", f"id={book_id},name={name}", user_id=request.user_id)
     return jsonify({"message": "Livre ajouté avec succès", "id": book_id}), 201
 
+#Suppression de livre
+@app.route("/api/deletebooks", methods=["POST"])
+@auth_required
+@admin_required
+def delete_books():
+    data = request.get_json()
+    book_id = str(data.get("book_id"))
+    df = pd.read_csv("./data/books.csv", column_index=0)
+    df = df.drop(df.index[-1])
+    df.to_csv('./data/books.csv', index=False)
+    return jsonify({"message": "Stock mis à jour"}), 201
 
-
+#Passer une commande
 @app.route("/api/orders", methods=["POST"])
 @auth_required
 def create_order():
@@ -315,6 +333,7 @@ def create_order():
     write_log("INFO", "/api/orders", "order_successfully_registered","" f"email={email }," f"id={order_id},quantity={quantity}", user_id=request.user_id)
     return jsonify({"message": "Commande enregistrée"}), 201
 
+#Renouveler le stock
 @app.route("/api/addbooks", methods=["POST"])
 @auth_required
 @admin_required
@@ -330,7 +349,6 @@ def add_books():
     book = next((b for b in books if str(b["id"]) == book_id), None)
     if not book:
         return jsonify({"error": "Livre introuvable"}), 404
-    # maj stock
     for b in books:
         if str(b["id"]) == book_id:
             b["stock"] = str(int(b["stock"]) + quantity)
@@ -341,16 +359,16 @@ def add_books():
     write_log("INFO", "/api/addbooks", "Stock_renewed", f"book_id={book_id},quantity={quantity}", user_id=request.user_id)
     return jsonify({"message": "Stock mis à jour"}), 201
 
-@app.route("/api/books/<book_id>/price", methods=["PUT"])
+#Modifier le prix
+@app.route("/api/books/<bookid>/price", methods=["PUT"])
 @auth_required
 @admin_required
-def update_book_price(book_id):
+def modifyPrice(bookid):
     data = request.get_json()
     try:
         new_price = float(data.get("price", 0))
     except (TypeError, ValueError):
         return jsonify({"error": "Prix invalide"}), 400
-
     if new_price <= 0:
         return jsonify({"error": "Le prix doit être positif"}), 400
     books = []
@@ -358,21 +376,22 @@ def update_book_price(book_id):
         r = csv.DictReader(f)
         for row in r:
             books.append(row)
-    book = next((b for b in books if str(b["id"]) == str(book_id)), None)
+    book = next((b for b in books if str(b["id"]) == str(bookid)), None)
     if not book:
         return jsonify({"error": "Livre introuvable"}), 404
     old_price = book["price"]
     for b in books:
-        if str(b["id"]) == str(book_id):
+        if str(b["id"]) == str(bookid):
             b["price"] = str(new_price)
     with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["id", "name", "author", "genre", "price", "stock"])
+        fieldnames = ["id", "name", "author", "genre", "price", "stock"]
+        w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(books)
-    write_log("INFO", f"/api/books/{book_id}/price", "update_price_success", f"old={old_price},new={new_price}", user_id=request.user_id)
+    write_log("INFO",f"/api/books/{bookid}/price","update_price_success",f"old={old_price}, new={new_price}",user_id=request.user_id,)
     return jsonify({"message": "Prix mis à jour", "old_price": old_price, "new_price": new_price}), 200
 
-
+#Statistiques
 @app.route("/api/stats", methods=["GET"])
 @auth_required
 @admin_required

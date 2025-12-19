@@ -31,3 +31,63 @@ timestamp,level,user_id,endpoint,action,details
 2025-12-18T14:25:30.924245+00:00,INFO,1,/api/addbooks,Stock_renewed,"id=1,quantity=4"
 2025-12-18T14:55:04.302125+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
 2025-12-18T14:55:56.484366+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T11:39:27.181712+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T11:39:27.252131+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T11:52:47.709200+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T11:52:47.775248+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T11:53:48.092235+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T11:54:58.787926+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T11:57:05.427892+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:02:24.338882+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:03:00.211383+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:03:27.364037+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:04:35.867299+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:07:03.907340+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:09:00.675048+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T12:09:00.731982+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T12:10:12.650583+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T12:10:12.711655+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T12:11:08.474012+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T12:11:08.529092+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T12:12:35.107180+00:00,INFO,2,/api/orders,order_successfully_registered,"email=user@user.com,id=29,quantity=1"
+2025-12-19T12:12:36.524786+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T12:12:47.961245+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:12:50.998863+00:00,INFO,1,/api/addbooks,Stock_renewed,"book_id=1,quantity=1"
+2025-12-19T12:14:08.514675+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-19T12:14:13.242931+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:15:10.522546+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:15:43.634093+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:23:03.208870+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:27:35.280049+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:31:48.208761+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:35:52.952379+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T12:40:06.207982+00:00,INFO,1,/api/books,add_book_success,"id=33,name=L'histoire d'un Homme qui faisait que tomber"
+2025-12-19T12:49:35.688807+00:00,WARNING,,/api/login,login_failed,email=admin@admin.com
+2025-12-19T12:49:36.880347+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:00:22.711255+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:00:54.839712+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:16:12.769401+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:17:09.952431+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:17:22.575688+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=30,quantity=1"
+2025-12-19T13:18:23.800759+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:18:27.622532+00:00,INFO,1,/api/books/3/price,update_price_success,"old=15.0, new=30.0"
+2025-12-19T13:18:35.869617+00:00,INFO,1,/api/books/4/price,update_price_success,"old=20.0, new=50.0"
+2025-12-19T13:18:39.325992+00:00,INFO,1,/api/books/5/price,update_price_success,"old=18.0, new=64.0"
+2025-12-19T13:22:39.922301+00:00,INFO,2,/api/login,login_success,email=user@user.com
+2025-12-19T13:22:39.963281+00:00,WARNING,2,/api/stats,admin_forbidden,accès non admin
+2025-12-19T13:32:30.179121+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T13:32:37.360096+00:00,INFO,1,/api/books/5/price,update_price_success,"old=64.0, new=30.0"
+2025-12-19T13:32:41.344079+00:00,INFO,1,/api/books/4/price,update_price_success,"old=50.0, new=25.0"
+2025-12-19T13:32:58.752565+00:00,INFO,1,/api/books/7/price,update_price_success,"old=30.0, new=19.99"
+2025-12-19T13:33:31.400195+00:00,INFO,1,/api/books/33/price,update_price_success,"old=999.0, new=999.99"
+2025-12-19T13:33:36.070896+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=31,quantity=1"
+2025-12-19T13:33:45.192048+00:00,INFO,1,/api/addbooks,Stock_renewed,"book_id=6,quantity=1"
+2025-12-19T13:35:34.423892+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=32,quantity=150"
+2025-12-19T13:35:42.609212+00:00,INFO,1,/api/addbooks,Stock_renewed,"book_id=3,quantity=200"
+2025-12-19T14:04:18.561822+00:00,INFO,1,/api/login,login_success,email=admin@admin.com
+2025-12-19T14:07:45.022602+00:00,INFO,1,/api/books/14/price,update_price_success,"old=21.0, new=20.0"
+2025-12-19T14:37:14.448181+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=33,quantity=5"
+2025-12-19T14:37:26.676510+00:00,INFO,1,/api/addbooks,Stock_renewed,"book_id=33,quantity=15"
+2025-12-19T14:37:31.818265+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=34,quantity=10"
+2025-12-19T14:38:15.478399+00:00,INFO,1,/api/orders,order_successfully_registered,"email=admin@admin.com,id=35,quantity=4"
+2025-12-19T14:38:18.804086+00:00,INFO,1,/api/addbooks,Stock_renewed,"book_id=33,quantity=14"

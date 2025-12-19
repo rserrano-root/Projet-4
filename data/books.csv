@@ -1,18 +1,18 @@
 id,name,author,genre,price,stock
-1,LoTR,JRR Tolkien,Fantasy,25.0,500
-2,1984,George Orwell,Dystopie,25.0,500
-3,The Great Gatsby,F. Scott Fitzgerald,Classics,15.0,300
-4,To Kill a Mockingbird,Harper Lee,Classics,20.0,400
-5,The Catcher in the Rye,J.D. Salinger,Classics,18.0,350
+1,LoTR,JRR Tolkien,Fantasy,30.0,500
+2,1984,George Orwell,Dystopie,30.0,499
+3,The Great Gatsby,F. Scott Fitzgerald,Classics,30.0,350
+4,To Kill a Mockingbird,Harper Lee,Classics,25.0,400
+5,The Catcher in the Rye,J.D. Salinger,Classics,30.0,350
 6,Brave New World,Aldous Huxley,Dystopie,22.0,450
-7,The Hobbit,JRR Tolkien,Fantasy,30.0,600
+7,The Hobbit,JRR Tolkien,Fantasy,19.99,600
 8,Fahrenheit 451,Ray Bradbury,Dystopie,19.0,320
 9,Mobydick,Herman Melville,Classics,28.0,280
 10,The Odyssey,Homer,Classics,24.0,330
 11,Harry Potter and the Sorcerer's Stone,J.K. Rowling,Fantasy,35.0,700
 12,The Chronicles of Narnia,C.S. Lewis,Fantasy,27.0,480
 13,Animal Farm,George Orwell,Dystopie,12.0,290
-14,The Alchemist,Paulo Coelho,Fiction,21.0,410
+14,The Alchemist,Paulo Coelho,Fiction,20.0,410
 15,The Da Vinci Code,Dan Brown,Thriller,26.0,520
 16,The Hunger Games,Suzanne Collins,Dystopie,23.0,430
 17,Pride and Prejudice,Jane Austen,Classics,17.0,360
@@ -31,3 +31,4 @@ id,name,author,genre,price,stock
 30,The Three Musketeers,Alexandre Dumas,Classics,22.0,230
 31,Logocratie,Clément Viktorovic,Sciences Politiques,19.0,200
 32,Sapiens,Yuval Noah Harari,History,25.0,500
+33,L'histoire d'un Homme qui faisait que tomber,Matys Mancel,Autobiographie,999.99,20

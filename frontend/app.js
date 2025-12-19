@@ -95,19 +95,16 @@ async function renderBooksTable(books) {
       <td>${b.name}</td>
       <td>${b.author}</td>
       <td>${b.genre}</td>
-      <td>${b.price} €</td>
-      <td>
-        <button class="order-btn" data-id="${b.id}">Modifier le prix</button>
+      <td class="admin-actions3">
+        ${b.price} €
       </td>
       <td>${b.stock}</td>
       <td>
         <input id=order-btn type="number" min="1" value="1" class="qty-input">
         <button class="order-btn" data-id="${b.id}">Commander</button>
       </td>
-      <td>
-        <button id=delete-books class="delete-books-btn" data-id="${b.id}">Supprimer</button>
-      </td>
-      <td class="admin-actions"></td>    
+      <td class="admin-actions"></td>  
+      <td class="admin-actions2"></td>  
     `;
 
       const adminActionsCell = tr.querySelector(".admin-actions");
@@ -122,12 +119,57 @@ async function renderBooksTable(books) {
               addStock(b.id, parseInt(quantity));
           }
       });
-      
+
+      const adminActionsCell2 = tr.querySelector(".admin-actions2");
+      const addDeleteBtn = document.createElement("button");
+      addDeleteBtn.textContent = "Supprimer";
+      addDeleteBtn.classList.add("btn-delete-stock");
+      addDeleteBtn.id = `btn-delete-${b.id}`;
+      addDeleteBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const areUsure = prompt("Êtes vous sûre de vouloir supprimer ? \n Écrivez 'oui'")
+          if (areUsure == "oui" || "Oui" || "OUI") {
+            DeleteStock(b.id)
+          }
+      });
+
+      const adminActionsCell3 = tr.querySelector(".admin-actions3");
+      const modifyPriceBtns = document.createElement("button");
+      modifyPriceBtns.textContent = "modifier le prix";
+      modifyPriceBtns.classList.add("btn-modify-price");
+      modifyPriceBtns.id = `btn-stock-${b.id}`;
+      modifyPriceBtns.addEventListener("click", (e) => {
+          e.preventDefault();
+          const newPrice = prompt("Nouveau prix :");
+          if (newPrice && !isNaN(newPrice) && parseFloat(newPrice) > 0) {
+              modifyPrice(b.id, parseFloat(newPrice));
+          }
+      });
+
       adminActionsCell.appendChild(addStockBtn);
+      adminActionsCell2.appendChild(addDeleteBtn);
+      adminActionsCell3.appendChild(modifyPriceBtns);
       booksTableBody.appendChild(tr);
   });
   
   await checkAdminAndShowButton();
+}
+
+async function DeleteStock(id, quantity) {
+
+  const result = await apiPost("/deletebooks", {
+        book_id: id,
+        quantity: quantity
+    });
+
+  if (result.ok) {
+        alert("Stock mis à jour !");
+        await loadBooks();
+        await loadStats();
+    } else {
+        alert("Erreur : " + (result.data.error || "Erreur inconnue"));
+    }
+
 }
 
 async function addStock(bookId, quantity) {
@@ -153,17 +195,39 @@ async function checkAdminAndShowButton() {
     const user = await apiGet("/me");
     const adminEmail = "admin@admin.com";
     
+    const addDeleteBtns = document.querySelectorAll(".btn-delete-stock")    
+    const modifyPriceBtns = document.querySelectorAll(".btn-modify-price");
     const addStockBtns = document.querySelectorAll(".btn-add-stock");
     const addBookForm = document.getElementById("add-book-section");
     const statSection = document.getElementById("stat-section");
     
     if (user.email !== adminEmail) {
+        modifyPriceBtns.forEach(btn => btn.style.display = "none");
+        addDeleteBtns.forEach(btn => btn.style.display = "none");
         addStockBtns.forEach(btn => btn.style.display = "none");
         addBookForm.style.display = "none";
         statSection.style.display = "none";
     }
 }
 
+async function modifyPrice(bookId, newPrice) {
+    console.log("Envoi requête addStock:", { book_id: bookId, new_price: newPrice });
+    
+      const result = await apiPut(`/books/${bookId}/price`, {
+      price: newPrice  
+    });
+    
+    console.log("Réponse du serveur:", result);
+    
+    if (result.ok) {
+        alert("Prix modifié !");
+        await loadBooks();
+        await loadStats();
+    } else {
+        alert("Erreur : " + (result.data.error || "Erreur inconnue"));
+    }
+    init();
+}
 
 async function loadStats() {
     const stats = await apiGet("/stats");
