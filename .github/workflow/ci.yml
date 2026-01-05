@@ -24,9 +24,9 @@ jobs:
         run: npm install
 
   sonarcloud:
-  name: SonarCloud Scan
-  needs: build-and-test
-  runs-on: ubuntu-latest
+    name: SonarCloud Scan
+    needs: build-and-test
+    runs-on: ubuntu-latest
 
   steps:
     - name: Checkout code
@@ -44,4 +44,3 @@ jobs:
           -Dsonar.organization=projet-4a
           -Dsonar.projectKey=Projet-4o_Projet-4
           -Dsonar.sources=.
-
