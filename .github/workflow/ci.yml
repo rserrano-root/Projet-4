@@ -23,7 +23,7 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
-  sonarcloud:
+    sonarcloud:
     name: SonarCloud Scan
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # recommandé
+          fetch-depth: 0
 
       - name: SonarQube Scan (SonarCloud)
         uses: sonarsource/sonarqube-scan-action@v6
