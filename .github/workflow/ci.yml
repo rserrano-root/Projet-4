@@ -1,1 +1,56 @@
+name: Python CI - Security & Quality
 
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-and-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install all tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint bandit safety
+    
+    - name: 🔍 Flake8 - Check code style
+      run: |
+        echo "========== FLAKE8 =========="
+        flake8 . --max-line-length=127 --exclude=.git,__pycache__,.github,venv,.venv || echo "Flake8 found issues"
+      continue-on-error: true
+    
+    - name: 📊 Pylint - Code quality analysis
+      run: |
+        echo "========== PYLINT =========="
+        find . -name "*.py" -not -path "./.git/*" -not -path "./venv/*" | xargs pylint --exit-zero || echo "Pylint analysis complete"
+      continue-on-error: true
+    
+    - name: 🔒 Bandit - Security scan
+      run: |
+        echo "========== BANDIT =========="
+        bandit -r . -ll || echo "Bandit scan complete"
+      continue-on-error: true
+    
+    - name: 🛡️ Safety - Check dependencies
+      run: |
+        echo "========== SAFETY =========="
+        safety check --json || echo "Safety check complete (may need requirements.txt)"
+      continue-on-error: true
+    
+    - name: ✅ All checks completed
+      run: |
+        echo "================================================"
+        echo "All security and quality checks are completed!"
+        echo "Review the logs above for any issues found."
+        echo "================================================"
