@@ -80,6 +80,127 @@ async function apiPut(path, body) {
   return { ok: res.ok, data };
 }
 
+function getToken() {
+    return localStorage.getItem("token") || "";
+}
+
+async function addToCart(bookId, quantity = 1) {
+    const token = getToken();
+    const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ book_id: String(bookId), quantity })
+    });
+    if (res.ok) {
+        await fetchCart();
+    } else {
+        const err = await res.json();
+        alert(err.error || "Erreur ajout au panier");
+    }
+}
+
+async function fetchCart() {
+    const token = getToken();
+    const res = await fetch("/api/cart", {
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) return;
+    const items = await res.json();
+    renderCart(items);
+}
+
+function renderCart(items) {
+    const container = document.getElementById("cart-items");
+    const count = document.getElementById("cart-count");
+    container.innerHTML = "";
+    if (!items || items.length === 0) {
+        container.innerHTML = "<p>Panier vide</p>";
+        count.textContent = "0";
+        return;
+    }
+    count.textContent = String(items.length);
+    items.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "cart-item";
+        const name = item.book_name || ("Livre ID " + item.book_id);
+        el.innerHTML = `
+            <div class="cart-item-left">
+                <strong>${name}</strong>
+                <div>Quantité: ${item.quantity}</div>
+            </div>
+            <div class="cart-item-right">
+                <button class="remove-cart-btn" data-id="${item.id}">Supprimer</button>
+            </div>
+        `;
+        container.appendChild(el);
+    });
+    document.querySelectorAll(".remove-cart-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const id = e.currentTarget.dataset.id;
+            await removeFromCart(id);
+        });
+    });
+}
+
+async function removeFromCart(cartId) {
+    const token = getToken();
+    const res = await fetch(`/api/cart/${cartId}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) {
+        await fetchCart();
+    } else {
+        const err = await res.json();
+        alert(err.error || "Impossible de supprimer");
+    }
+}
+
+async function checkoutCart() {
+    const token = getToken();
+    const res = await fetch("/api/cart/checkout", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) {
+        alert("Achat finalisé");
+        await fetchBooks();
+        await fetchCart();
+    } else {
+        const err = await res.json();
+        alert(err.error || "Erreur lors du paiement");
+    }
+  await fetchCart();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("open-cart-btn").addEventListener("click", () => {
+        document.getElementById("cart-panel").classList.remove("cart-closed");
+    });
+    document.getElementById("close-cart-btn").addEventListener("click", () => {
+        document.getElementById("cart-panel").classList.add("cart-closed");
+    });
+    document.getElementById("checkout-btn").addEventListener("click", () => {
+        if (confirm("Confirmer la commande de tous les articles du panier ?")) {
+            checkoutCart();
+        }
+    });
+    if (typeof fetchBooks === "function") {
+        fetchBooks().then(() => fetchCart());
+    } else {
+        fetchCart();
+    }
+});
+
+document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".order-btn");
+    if (!btn) return;
+    const id = btn.dataset.id;
+    addToCart(id, 1);
+});
 
 async function loadBooks() {
   const books = await apiGet("/books");
@@ -126,11 +247,14 @@ async function renderBooksTable(books) {
       addDeleteBtn.classList.add("btn-delete-stock");
       addDeleteBtn.id = `btn-delete-${b.id}`;
       addDeleteBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          const areUsure = prompt("Êtes vous sûre de vouloir supprimer ? \n Écrivez 'oui'")
-          if (areUsure == "oui" || "Oui" || "OUI") {
-            DeleteStock(b.id)
-          }
+        e.preventDefault();
+        const areUsure = prompt("Êtes vous sûre de vouloir supprimer cet article ? \n Écrivez 'oui' pour valider : ");
+        if (areUsure === "Oui" || areUsure === "oui" || areUsure === "OUI"){
+          DeleteStock(areUsure, b.id, b.name);
+        } 
+        else{
+
+        }
       });
 
       const adminActionsCell3 = tr.querySelector(".admin-actions3");
@@ -155,11 +279,13 @@ async function renderBooksTable(books) {
   await checkAdminAndShowButton();
 }
 
-async function DeleteStock(id, quantity) {
+async function DeleteStock(areUsure, bookId, bookname) {
+  console.log("Envoi requête addStock:", { iAmSure: areUsure});
 
   const result = await apiPost("/deletebooks", {
-        book_id: id,
-        quantity: quantity
+    iAmSure: areUsure,
+    book_id: bookId,
+    book_name: bookname
     });
 
   if (result.ok) {
@@ -169,7 +295,6 @@ async function DeleteStock(id, quantity) {
     } else {
         alert("Erreur : " + (result.data.error || "Erreur inconnue"));
     }
-
 }
 
 async function addStock(bookId, quantity) {

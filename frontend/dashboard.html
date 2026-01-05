@@ -9,7 +9,7 @@
   <header class="topbar">
     <h1>Gestion de stock - Librairie</h1>
     <div class="button">
-      <button id="cart"> Mon panier 🛒</button>
+      <button id="open-cart-btn" class="cart-btn">Panier (<span id="cart-count">0</span>)</button>
       <button id="logout-btn">Déconnexion</button>
     </div>
   </header>
@@ -59,6 +59,16 @@
       <p>Total articles vendus : <span id="stat-items">0</span></p>
       <p>Chiffre d'affaires : <span id="stat-revenue">0</span> €</p>
     </section>
+
+        <aside id="cart-panel" class="cart-closed">
+          <h3>Votre panier</h3>
+            <div id="cart-items"></div>
+            <div id="cart-total">Total : 0 €</div>
+            <div class="cart-actions">
+                <button id="checkout-btn">Commander tout</button>
+                <button id="close-cart-btn">Fermer</button>
+            </div>
+        </aside>
   </main>
 
   <script src="app.js"></script>
