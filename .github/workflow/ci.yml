@@ -20,7 +20,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        working-directory: ./backend
+        working-directory: ./frontend
         run: npm install
 
   sonarcloud:
