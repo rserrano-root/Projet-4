@@ -1,19 +1,49 @@
-name: Build
+name: CI
+
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [ "main" ]
+
 jobs:
-  sonarqube:
-    name: SonarQube
+  build-and-test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
+
+  sonarcloud:
+    name: SonarCloud Scan
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # recommandé
+
+      - name: SonarQube Scan (SonarCloud)
+        uses: sonarsource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          projectBaseDir: backend
+          args: >
+            -Dsonar.organization=projet3-groupe
+            -Dsonar.projectKey=projet3-groupe_Site_gestion_event
+            -Dsonar.sources=.
+            -Dsonar.qualitygate.wait=true
+
