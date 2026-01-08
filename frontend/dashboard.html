@@ -2,12 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Librairie - Dashboard</title>
+  <title>Amazin'</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <h1>Gestion de stock - Librairie</h1>
+    <h1>Amazin'</h1>
     <div class="button">
       <button id="open-cart-btn" class="cart-btn">Panier (<span id="cart-count">0</span>)</button>
       <button id="logout-btn">Déconnexion</button>
@@ -15,60 +15,82 @@
   </header>
 
   <main class="grid">
-    <section class="card" id="add-book-section">
-      <h2>Ajouter un livre</h2>
-      <form id="book-form">
-        <input type="text" id="book-name" placeholder="Name" required>
-        <input type="text" id="book-author" placeholder="Auteur" required>
-        <input type="text" id="book-genre" placeholder="Genre" required>
-        <input type="number" id="book-price" placeholder="Prix" step="0.01" required>
-        <input type="number" id="book-stock" placeholder="Stock initial" required>
-        <button type="submit">Ajouter</button>
-      </form>
-    </section>
+    <div class="tabs" role="tablist" aria-label="Navigation principale">
+      <button class="active" data-tab="catalog" role="tab" aria-selected="true">Catalogue</button>
+      <button data-tab="stats" role="tab" aria-selected="false">Statistiques</button>
+    </div>
 
-    <section class="searchbarCard">
-      <h2>Rechercher des livres</h2>
-        <input
-          type="text"
-          id="search-btn"
-          placeholder="Rechercher par titre, auteur ou genre"
-          style="margin-bottom:10px; width:99%; padding:6px;"
-        />
-    </section>
+    <div id="tab-catalog" class="tab-panel active">
+      <section class="card" id="add-book-section">
+        <h2>Ajouter un livre</h2>
+        <form id="book-form">
+          <input type="text" id="book-name" placeholder="Name" required>
+          <input type="text" id="book-author" placeholder="Auteur" required>
+          <input type="text" id="book-genre" placeholder="Genre" required>
+          <input type="number" id="book-price" placeholder="Prix" step="0.01" required>
+          <input type="number" id="book-stock" placeholder="Stock initial" required>
+          <button type="submit">Ajouter</button>
+        </form>
+      </section>
 
-    <section class="card">
-      <h2>Stock des livres</h2>
-      <table id="books-table">
-        <thead>
-          <tr>
-            <th onclick="sortTable(0)">Titre<span id="arrow0" class="inactive"></span></th>
-            <th onclick="sortTable(1)">Auteur<span id="arrow1" class="inactive"></span></th>
-            <th onclick="sortTable(2)">Genre<span id="arrow2" class="inactive"></span></th>
-            <th>Prix</th>
-            <th>Stock</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+      <section class="searchbarCard">
+        <h2>Rechercher des livres</h2>
+          <input
+            type="text"
+            id="search-btn"
+            placeholder="Rechercher par titre, auteur ou genre"
+          />
+      </section>
 
-    <section class="card" id="stat-section">
-      <h2>Statistiques ventes</h2>
-      <p>Total articles vendus : <span id="stat-items">0</span></p>
-      <p>Chiffre d'affaires : <span id="stat-revenue">0</span> €</p>
-    </section>
+      <section class="card">
+        <h2>Stock des livres</h2>
+        <table id="books-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable(0)">Titre<span id="arrow0" class="inactive"></span></th>
+              <th onclick="sortTable(1)">Auteur<span id="arrow1" class="inactive"></span></th>
+              <th onclick="sortTable(2)">Genre<span id="arrow2" class="inactive"></span></th>
+              <th onclick="sortTable(3)">Prix<span id="arrow3" class="inactive"></span></th>
+              <th>Stock</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
 
-        <aside id="cart-panel" class="cart-closed">
-          <h3>Votre panier</h3>
-            <div id="cart-items"></div>
-            <div id="cart-total">Total : 0 €</div>
-            <div class="cart-actions">
-                <button id="checkout-btn">Commander tout</button>
-                <button id="close-cart-btn">Fermer</button>
-            </div>
-        </aside>
+      <section class="card">
+        <h2>Mes achats</h2>
+        <table id="orders-table">
+          <thead>
+            <tr>
+              <th>Livre</th>
+              <th>Quantité</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </div>
+
+    <div id="tab-stats" class="tab-panel">
+      <section class="card" id="stat-section">
+        <h2>Statistiques ventes</h2>
+        <p>Total articles vendus : <span id="stat-items">0</span></p>
+        <p>Chiffre d'affaires : <span id="stat-revenue">0</span> €</p>
+      </section>
+    </div>
+
+    <aside id="cart-panel" class="cart-closed">
+      <h3>Votre panier</h3>
+      <div id="cart-items"></div>
+      <div id="cart-total">Total : 0 €</div>
+      <div class="cart-actions">
+        <button id="checkout-btn">Commander tout</button>
+        <button id="close-cart-btn">Fermer</button>
+      </div>
+    </aside>
   </main>
 
   <script src="app.js"></script>

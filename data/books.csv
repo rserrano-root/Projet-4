@@ -1,9 +1,9 @@
 id,name,author,genre,price,stock
 1,LoTR,JRR Tolkien,Fantasy,30.0,500
-2,1984,George Orwell,Dystopie,30.0,499
+2,1984,George Orwell,Dystopie,30.0,498
 3,The Great Gatsby,F. Scott Fitzgerald,Classics,30.0,350
 4,To Kill a Mockingbird,Harper Lee,Classics,25.0,400
-5,The Catcher in the Rye,J.D. Salinger,Classics,30.0,350
+5,The Catcher in the Rye,J.D. Salinger,Classics,30.0,349
 6,Brave New World,Aldous Huxley,Dystopie,22.0,450
 7,The Hobbit,JRR Tolkien,Fantasy,19.99,600
 8,Fahrenheit 451,Ray Bradbury,Dystopie,19.0,320
@@ -24,11 +24,11 @@ id,name,author,genre,price,stock
 23,Dracula,Bram Stoker,Horror,19.0,300
 24,Frankenstein,Mary Shelley,Horror,18.0,290
 25,The Picture of Dorian Gray,Oscar Wilde,Classics,16.0,280
-26,Jane Eyre,Charlotte Brontë,Classics,21.0,320
-27,Wuthering Heights,Emily Brontë,Classics,20.0,300
+26,Jane Eyre,Charlotte Brontë,Classics,21.0,319
+27,Wuthering Heights,Emily Brontë,Classics,20.0,295
 28,The Count of Monte Cristo,Alexandre Dumas,Classics,25.0,200
 29,Les Misérables,Victor Hugo,Classics,30.0,350
 30,The Three Musketeers,Alexandre Dumas,Classics,22.0,230
 31,Logocratie,Clément Viktorovic,Sciences Politiques,19.0,200
 32,Sapiens,Yuval Noah Harari,History,25.0,500
-33,L'histoire d'un Homme qui faisait que tomber,Matys Mancel,Autobiographie,999.99,20
+33,L'histoire d'un Homme qui faisait que tomber,Matys Mancel,Autobiographie,999.99,19

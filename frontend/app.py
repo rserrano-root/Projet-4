@@ -304,13 +304,10 @@ def add_book():
 def delete_books():
     data = request.get_json()
     book_id = str(data.get("book_id"))
-    iamsure = str(data.get("iAmSure")).strip()
     name = str(data.get("book_name")).strip()
-    print(iamsure + " test")
     with open("./data/books.csv", "r", newline="") as infile:
         reader = csv.reader(infile)
         rows = [row for row in reader if row[0] != book_id]
-
     with open("./data/books.csv", "w", newline="") as outfile:
         writer = csv.writer(outfile)
         writer.writerows(rows)
@@ -363,10 +360,14 @@ def get_cart():
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user_id = SESSIONS[token]["user_id"]
     cart_items = []
+    books = load_books()
+    books_map = {b["id"]: b for b in books}
     with open(CART_FILE, newline="", encoding="utf-8") as f:
         r = csv.DictReader(f)
         for row in r:
             if row["user_id"] == user_id:
+                book = books_map.get(str(row["book_id"]))
+                row["book_name"] = book["name"] if book else "Livre introuvable"
                 cart_items.append(row)
     return jsonify(cart_items), 200
 
@@ -378,19 +379,51 @@ def add_to_cart():
     quantity = int(data.get("quantity", 1))
     if quantity <= 0:
         return jsonify({"error": "Quantité invalide"}), 400
-    # verify book exists
     books = load_books()
     book = next((b for b in books if str(b["id"]) == str(book_id)), None)
     if not book:
         return jsonify({"error": "Livre introuvable"}), 404
-    cart_item_id = cart_id_count()
-    date_added = datetime.now(timezone.utc).isoformat()
+    if int(book["stock"]) < quantity:
+        return jsonify({"error": "Stock insuffisant"}), 400
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user_id = SESSIONS[token]["user_id"]
-    with open(CART_FILE, "a", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow([cart_item_id, user_id, book_id, quantity, date_added])
-    return jsonify({"message": "Article ajouté au panier", "cart_id": cart_item_id}), 201
+    
+    cart_items = []
+    existing_item = None
+    with open(CART_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            if row["user_id"] == user_id and row["book_id"] == book_id:
+                existing_item = row
+                row["quantity"] = str(int(row["quantity"]) + quantity)
+            cart_items.append(row)
+    
+    if existing_item:
+        with open(CART_FILE, "w", newline="", encoding="utf-8") as f:
+            fieldnames = ["id", "user_id", "book_id", "quantity", "date_added"]
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w.writeheader()
+            w.writerows(cart_items)
+        book["stock"] = str(int(book["stock"]) - quantity)
+        with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
+            fieldnames = ["id", "name", "author", "genre", "price", "stock"]
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w.writeheader()
+            w.writerows(books)
+        return jsonify({"message": "Quantité mise à jour dans le panier", "cart_id": existing_item["id"]}), 200
+    else:
+        cart_item_id = cart_id_count()
+        date_added = datetime.now(timezone.utc).isoformat()
+        with open(CART_FILE, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow([cart_item_id, user_id, book_id, quantity, date_added])
+        book["stock"] = str(int(book["stock"]) - quantity)
+        with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
+            fieldnames = ["id", "name", "author", "genre", "price", "stock"]
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w.writeheader()
+            w.writerows(books)
+        return jsonify({"message": "Article ajouté au panier", "cart_id": cart_item_id}), 201
 
 @app.route("/api/cart/<cartid>", methods=["DELETE"])
 @auth_required
@@ -398,21 +431,32 @@ def remove_from_cart(cartid):
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user_id = SESSIONS[token]["user_id"]
     cart_items = []
-    removed = False
+    removed_quantity = 0
+    removed_book_id = None
     with open(CART_FILE, newline="", encoding="utf-8") as f:
         r = csv.DictReader(f)
         for row in r:
             if row["id"] == str(cartid) and row["user_id"] == user_id:
-                removed = True
+                removed_quantity = int(row["quantity"])
+                removed_book_id = row["book_id"]
                 continue
             cart_items.append(row)
-    if not removed:
+    if not removed_book_id:
         return jsonify({"error": "Article introuvable dans le panier"}), 404
     with open(CART_FILE, "w", newline="", encoding="utf-8") as f:
         fieldnames = ["id", "user_id", "book_id", "quantity", "date_added"]
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(cart_items)
+    books = load_books()
+    book = next((b for b in books if str(b["id"]) == str(removed_book_id)), None)
+    if book:
+        book["stock"] = str(int(book["stock"]) + removed_quantity)
+        with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
+            fieldnames = ["id", "name", "author", "genre", "price", "stock"]
+            w = csv.DictWriter(f, fieldnames=fieldnames)
+            w.writeheader()
+            w.writerows(books)
     return jsonify({"message": "Article supprimé du panier"}), 200
 
 @app.route("/api/cart/checkout", methods=["POST"])
@@ -434,17 +478,7 @@ def checkout_cart():
         b = books_map.get(str(item["book_id"]))
         if not b:
             return jsonify({"error": f"Livre {item['book_id']} introuvable"}), 404
-        if int(b["stock"]) < int(item["quantity"]):
-            return jsonify({"error": f"Stock insuffisant pour le livre {b['name']}"}), 400
 
-    for item in cart_items:
-        b = books_map[item["book_id"]]
-        b["stock"] = str(int(b["stock"]) - int(item["quantity"]))
-    with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as f:
-        fieldnames = ["id", "name", "author", "genre", "price", "stock"]
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerows(books_map.values())
     for item in cart_items:
         order_id = orders_id_count()
         date_str = datetime.now(timezone.utc).isoformat()
@@ -468,6 +502,24 @@ def checkout_cart():
         w.writerows(remaining)
     write_log("INFO", "/api/cart/checkout", "checkout_success", f"items={len(cart_items)}", user_id=user_id)
     return jsonify({"message": "Achat finalisé", "items": len(cart_items)}), 200
+
+@app.route("/api/orders", methods=["GET"])
+@auth_required
+def get_orders():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user_id = SESSIONS[token]["user_id"]
+    orders = []
+    books = load_books()
+    books_map = {b["id"]: b for b in books}
+    with open(ORDERS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            if row["user_id"] == user_id:
+                book = books_map.get(str(row["book_id"]))
+                row["book_name"] = book["name"] if book else "Livre introuvable"
+                orders.append(row)
+    # Retourner les 10 derniers achats
+    return jsonify(orders[-10:]), 200
 
 #Renouveler le stock
 @app.route("/api/addbooks", methods=["POST"])
@@ -566,5 +618,5 @@ def run_flask():
 if __name__ == "__main__":
     t = threading.Thread(target=run_flask, daemon=True)
     t.start()
-    window = webview.create_window('Librairie App', 'http://127.0.0.1:5000')
+    window = webview.create_window("Amazin'", 'http://127.0.0.1:5000')
     webview.start()

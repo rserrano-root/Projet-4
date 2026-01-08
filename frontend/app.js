@@ -96,6 +96,9 @@ async function addToCart(bookId, quantity = 1) {
     });
     if (res.ok) {
         await fetchCart();
+      if (typeof loadBooks === "function") {
+        await loadBooks();
+      }
     } else {
         const err = await res.json();
         alert(err.error || "Erreur ajout au panier");
@@ -153,10 +156,50 @@ async function removeFromCart(cartId) {
     });
     if (res.ok) {
         await fetchCart();
+      if (typeof loadBooks === "function") {
+        await loadBooks();
+      }
     } else {
         const err = await res.json();
         alert(err.error || "Impossible de supprimer");
     }
+}
+
+async function fetchOrders() {
+    const token = getToken();
+    const res = await fetch("/api/orders", {
+        headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) return;
+    const orders = await res.json();
+    renderOrders(orders);
+}
+
+function renderOrders(orders) {
+    const container = document.querySelector("#orders-table tbody");
+    container.innerHTML = "";
+    if (!orders || orders.length === 0) {
+        container.innerHTML = "<tr><td colspan='3' style='text-align:center;'>Aucun achat</td></tr>";
+        return;
+    }
+    orders.forEach(order => {
+        const tr = document.createElement("tr");
+    // supporte plusieurs noms de champ de date selon le backend
+    const dateStr = order.date || order.date_achat || order.date_added || order.date_achat;
+    let dateText = "";
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d)) dateText = d.toLocaleDateString('fr-FR');
+    } catch (e) {
+      dateText = "";
+    }
+    tr.innerHTML = `
+      <td>${order.book_name || "Livre introuvable"}</td>
+      <td>${order.quantity}</td>
+      <td>${dateText}</td>
+    `;
+        container.appendChild(tr);
+    });
 }
 
 async function checkoutCart() {
@@ -167,13 +210,18 @@ async function checkoutCart() {
     });
     if (res.ok) {
         alert("Achat finalisé");
-        await fetchBooks();
-        await fetchCart();
+        // Vider immédiatement l'affichage du panier
+        renderCart([]);
+      if (typeof loadBooks === "function") await loadBooks();
+      await fetchCart();
+      // Mettre à jour la liste des achats récents après un checkout
+      if (typeof fetchOrders === "function") await fetchOrders();
+        document.getElementById("cart-panel").classList.add("cart-closed");
     } else {
         const err = await res.json();
         alert(err.error || "Erreur lors du paiement");
     }
-  await fetchCart();
+    await fetchCart();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -188,10 +236,24 @@ document.addEventListener("DOMContentLoaded", () => {
             checkoutCart();
         }
     });
-    if (typeof fetchBooks === "function") {
-        fetchBooks().then(() => fetchCart());
+    // Tab navigation: basique, affiche le panneau lié au bouton cliqué
+    const tabButtons = document.querySelectorAll('.tabs button');
+    if (tabButtons && tabButtons.length) {
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          tabButtons.forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          const target = e.currentTarget.dataset.tab;
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          const panel = document.getElementById(`tab-${target}`);
+          if (panel) panel.classList.add('active');
+        });
+      });
+    }
+    if (typeof loadBooks === "function") {
+      loadBooks().then(() => fetchCart()).then(() => fetchOrders());
     } else {
-        fetchCart();
+      fetchCart().then(() => fetchOrders());
     }
 });
 
@@ -220,15 +282,18 @@ async function renderBooksTable(books) {
         ${b.price} €
       </td>
       <td>${b.stock}</td>
-      <td>
-        <input id=order-btn type="number" min="1" value="1" class="qty-input">
-        <button class="order-btn" data-id="${b.id}">Commander</button>
+      <td class="actions-col">
+        <div class="order-wrap">
+          <input type="number" min="1" value="1" class="qty-input">
+          <button class="order-btn" data-id="${b.id}">Commander</button>
+        </div>
+        <div class="admin-controls"></div>
       </td>
-      <td class="admin-actions"></td>  
-      <td class="admin-actions2"></td>  
     `;
 
-      const adminActionsCell = tr.querySelector(".admin-actions");
+      const actionsCell = tr.querySelector(".actions-col");
+      const adminControls = actionsCell.querySelector(".admin-controls");
+
       const addStockBtn = document.createElement("button");
       addStockBtn.textContent = "Ajouter stock";
       addStockBtn.classList.add("btn-add-stock");
@@ -241,7 +306,6 @@ async function renderBooksTable(books) {
           }
       });
 
-      const adminActionsCell2 = tr.querySelector(".admin-actions2");
       const addDeleteBtn = document.createElement("button");
       addDeleteBtn.textContent = "Supprimer";
       addDeleteBtn.classList.add("btn-delete-stock");
@@ -250,10 +314,7 @@ async function renderBooksTable(books) {
         e.preventDefault();
         const areUsure = prompt("Êtes vous sûre de vouloir supprimer cet article ? \n Écrivez 'oui' pour valider : ");
         if (areUsure === "Oui" || areUsure === "oui" || areUsure === "OUI"){
-          DeleteStock(areUsure, b.id, b.name);
-        } 
-        else{
-
+          DeleteStock(b.id, b.name);
         }
       });
 
@@ -270,8 +331,8 @@ async function renderBooksTable(books) {
           }
       });
 
-      adminActionsCell.appendChild(addStockBtn);
-      adminActionsCell2.appendChild(addDeleteBtn);
+      adminControls.appendChild(addStockBtn);
+      adminControls.appendChild(addDeleteBtn);
       adminActionsCell3.appendChild(modifyPriceBtns);
       booksTableBody.appendChild(tr);
   });
@@ -279,11 +340,9 @@ async function renderBooksTable(books) {
   await checkAdminAndShowButton();
 }
 
-async function DeleteStock(areUsure, bookId, bookname) {
-  console.log("Envoi requête addStock:", { iAmSure: areUsure});
+async function DeleteStock(bookId, bookname) {
 
   const result = await apiPost("/deletebooks", {
-    iAmSure: areUsure,
     book_id: bookId,
     book_name: bookname
     });
@@ -295,6 +354,7 @@ async function DeleteStock(areUsure, bookId, bookname) {
     } else {
         alert("Erreur : " + (result.data.error || "Erreur inconnue"));
     }
+
 }
 
 async function addStock(bookId, quantity) {
@@ -378,18 +438,9 @@ bookForm.addEventListener("submit", async (e) => {
 });
 
 booksTableBody.addEventListener("click", async (e) => {
-  if (e.target.classList.contains("order-btn")) {
-    const bookId = e.target.dataset.id;
-    const qtyInput = e.target.parentElement.querySelector(".qty-input");
-    const quantity = Number.parseInt(qtyInput.value, 10) || 1;
-    const { ok, data } = await apiPost("/orders", { book_id: bookId, quantity });
-    if (!ok) {
-      alert(data.error || "Erreur commande");
-      return;
-    }
-    alert("Commande enregistrée.");
-    init();
-  }
+  // Les boutons de commande ajoutent maintenant au panier via le gestionnaire global;
+  // n'envoyez pas directement une requête /orders ici pour éviter les doublons.
+  // (Le click sur .order-btn est traité par le listener global plus haut.)
   if (e.target.classList.contains("addbooks-btn")) {
     const bookId = e.target.dataset.id;
     const qtyInput = e.target.parentElement.querySelector(".qty-input");
