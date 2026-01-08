@@ -472,3 +472,38 @@ button[type="submit"]:hover,
     max-width: 350px;
   }
 }
+
+/*Pour les graphiques*/ 
+.chart-section {
+  min-height: 400px;
+}
+
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+  position: relative;
+}
+
+.chart-container img {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.chart-loading {
+  color: #666;
+  font-style: italic;
+}
+
+/* Cache les sections de graphiques pour les non-admins */
+#chart-yearly-sales-section {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .chart-container img {
+      width: 100%;
+      height: auto;
+  }
+}

@@ -39,7 +39,7 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
   localStorage.setItem("token", data.token);
-  window.location.href = "dashboard.html";
+  window.location.href = "/dashboard";
 
 });
 

@@ -121,25 +121,38 @@ function renderCart(items) {
     container.innerHTML = "";
     if (!items || items.length === 0) {
         container.innerHTML = "<p>Panier vide</p>";
-        count.textContent = "0";
+    count.textContent = "0";
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.textContent = 'Total : 0.00 €';
         return;
     }
-    count.textContent = String(items.length);
-    items.forEach(item => {
-        const el = document.createElement("div");
-        el.className = "cart-item";
-        const name = item.book_name || ("Livre ID " + item.book_id);
-        el.innerHTML = `
-            <div class="cart-item-left">
-                <strong>${name}</strong>
-                <div>Quantité: ${item.quantity}</div>
-            </div>
-            <div class="cart-item-right">
-                <button class="remove-cart-btn" data-id="${item.id}">Supprimer</button>
-            </div>
-        `;
-        container.appendChild(el);
-    });
+  let totalQty = 0;
+  let totalPrice = 0;
+  items.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "cart-item";
+    const name = item.book_name || ("Livre ID " + item.book_id);
+    const qty = parseInt(item.quantity, 10) || 0;
+    totalQty += qty;
+    const book = allBooks.find(b => String(b.id) === String(item.book_id) || String(b.id) === String(item.book_id));
+    const price = book ? parseFloat(book.price || 0) : 0;
+    totalPrice += price * qty;
+    el.innerHTML = `
+      <div class="cart-item-left">
+        <strong>${name}</strong>
+        <div>Quantité: ${qty}</div>
+        <div style="font-size:0.9rem;color:#666;">Prix unitaire: ${price.toFixed(2)} €</div>
+      </div>
+      <div class="cart-item-right">
+        <div style="text-align:right;font-weight:600">${(price * qty).toFixed(2)} €</div>
+        <button class="remove-cart-btn" data-id="${item.id}">Supprimer</button>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+  count.textContent = String(totalQty);
+  const totalEl = document.getElementById('cart-total');
+  if (totalEl) totalEl.textContent = `Total : ${totalPrice.toFixed(2)} €`;
     document.querySelectorAll(".remove-cart-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const id = e.currentTarget.dataset.id;
@@ -261,7 +274,16 @@ document.addEventListener("click", (e) => {
     const btn = e.target.closest(".order-btn");
     if (!btn) return;
     const id = btn.dataset.id;
-    addToCart(id, 1);
+    const wrap = btn.closest('.order-wrap') || btn.parentElement;
+    let qty = 1;
+    if (wrap) {
+      const input = wrap.querySelector('.qty-input');
+      if (input) {
+        const v = parseInt(input.value, 10);
+        if (!isNaN(v) && v > 0) qty = v;
+      }
+    }
+    addToCart(id, qty);
 });
 
 async function loadBooks() {
@@ -377,22 +399,43 @@ async function addStock(bookId, quantity) {
 }
 
 async function checkAdminAndShowButton() {
-    const user = await apiGet("/me");
-    const adminEmail = "admin@admin.com";
-    
-    const addDeleteBtns = document.querySelectorAll(".btn-delete-stock")    
-    const modifyPriceBtns = document.querySelectorAll(".btn-modify-price");
-    const addStockBtns = document.querySelectorAll(".btn-add-stock");
-    const addBookForm = document.getElementById("add-book-section");
-    const statSection = document.getElementById("stat-section");
-    
-    if (user.email !== adminEmail) {
-        modifyPriceBtns.forEach(btn => btn.style.display = "none");
-        addDeleteBtns.forEach(btn => btn.style.display = "none");
-        addStockBtns.forEach(btn => btn.style.display = "none");
-        addBookForm.style.display = "none";
-        statSection.style.display = "none";
+  const user = await apiGet("/me");
+  const adminEmail = "admin@admin.com";
+
+  const addDeleteBtns = document.querySelectorAll(".btn-delete-stock");
+  const modifyPriceBtns = document.querySelectorAll(".btn-modify-price");
+  const addStockBtns = document.querySelectorAll(".btn-add-stock");
+  const addBookForm = document.getElementById("add-book-section");
+  const statSection = document.getElementById("stat-section");
+  const statsTabBtn = document.querySelector('.tabs button[data-tab="stats"]');
+
+// Ajout des sections de graphiques
+  const chartYearlySales = document.getElementById("chart-yearly-sales-section");
+
+  if (user.email !== adminEmail) {
+    modifyPriceBtns.forEach(btn => btn.style.display = "none");
+    addDeleteBtns.forEach(btn => btn.style.display = "none");
+    addStockBtns.forEach(btn => btn.style.display = "none");
+    if (addBookForm) addBookForm.style.display = "none";
+    if (statSection) statSection.style.display = "none";
+
+    if (chartYearlySales) chartYearlySales.style.display = "none";
+
+    if (statsTabBtn) {
+      const wasActive = statsTabBtn.classList.contains('active');
+      statsTabBtn.remove();
+      if (wasActive) {
+        const firstBtn = document.querySelector('.tabs button[data-tab="catalog"]') || document.querySelector('.tabs button');
+        if (firstBtn) {
+          document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+          firstBtn.classList.add('active');
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          const panel = document.getElementById(`tab-${firstBtn.dataset.tab}`);
+          if (panel) panel.classList.add('active');
+        }
+      }
     }
+  }
 }
 
 async function modifyPrice(bookId, newPrice) {
@@ -420,6 +463,32 @@ async function loadStats() {
     statRevenue.textContent = stats.total_revenue.toFixed(2);
 }
 
+async function fetchCharts() {
+  try {
+    const data = await apiGet('/stats/charts');
+    if (!data) return;
+    if (data.total_items !== undefined) {
+      statItems.textContent = data.total_items;
+    }
+    if (data.total_revenue !== undefined) {
+      statRevenue.textContent = Number(data.total_revenue).toFixed(2);
+    }
+    if (data.plot_top_books) {
+      const el = document.getElementById('img-top-books');
+      if (el) el.src = 'data:image/png;base64,' + data.plot_top_books;
+    }
+    if (data.plot_by_genre) {
+      const el2 = document.getElementById('img-by-genre');
+      if (el2) el2.src = 'data:image/png;base64,' + data.plot_by_genre;
+    }
+  } catch (e) {
+    // ignore errors (e.g., no permission)
+  }
+}
+
+// Poll charts every 5 seconds so they reflect new sales automatically
+setInterval(fetchCharts, 5000);
+
 bookForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = document.getElementById("book-name").value;
@@ -438,9 +507,6 @@ bookForm.addEventListener("submit", async (e) => {
 });
 
 booksTableBody.addEventListener("click", async (e) => {
-  // Les boutons de commande ajoutent maintenant au panier via le gestionnaire global;
-  // n'envoyez pas directement une requête /orders ici pour éviter les doublons.
-  // (Le click sur .order-btn est traité par le listener global plus haut.)
   if (e.target.classList.contains("addbooks-btn")) {
     const bookId = e.target.dataset.id;
     const qtyInput = e.target.parentElement.querySelector(".qty-input");
@@ -497,10 +563,43 @@ function sortTable(n) {
   }
 }
 
+async function loadTopBooksChart() {
+  try {
+      const response = await apiGet("/chart/top-books");
+      const imgElement = document.getElementById("chart-top-books");
+      if (imgElement && response.image) {
+          imgElement.src = response.image;
+          imgElement.style.display = "block";
+          document.querySelector("#chart-top-books-loading").style.display = "none";
+      }
+  } catch (error) {
+      console.error("Erreur chargement graphique top ventes:", error);
+  }
+}
+
+async function loadYearlySalesChart() {
+  try {
+      const response = await apiGet("/chart/yearly-sales");
+      const imgElement = document.getElementById("chart-yearly-sales");
+      if (imgElement && response.image) {
+          imgElement.src = response.image;
+          imgElement.style.display = "block";
+          document.querySelector("#chart-yearly-sales-loading").style.display = "none";
+      }
+  } catch (error) {
+      console.error("Erreur chargement graphique annuel:", error);
+  }
+}
+
 async function init() {
     await loadBooks();
     await checkAdminAndShowButton();
-    await loadStats();
+    const user = await apiGet("/me");
+    await loadTopBooksChart();
+    if (user.email === "admin@admin.com") {
+      await loadStats();
+      await loadYearlySalesChart();
+  }
 }
 
 init();

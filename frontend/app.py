@@ -1,18 +1,25 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from datetime import datetime, timezone, timedelta
 import csv, os, uuid, hashlib, binascii
+from matplotlib.figure import Figure
+from collections import defaultdict
 from flask_cors import CORS
+from io import BytesIO
 import threading
 import requests
 import webview  
-
-
+import base64
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 CORS(app)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "Data")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 USERS_FILE = os.path.join(DATA_DIR, "users.csv")
 BOOKS_FILE = os.path.join(DATA_DIR, "books.csv")
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.csv")
@@ -190,6 +197,96 @@ def admin_required(func):
     return wrapper
 
 
+def amount_convert(x, pos):
+    if x >= 1e6:
+        return f'{x*1e-6:1.1f}M'
+    elif x >= 1e3:
+        return f'{x*1e-3:1.0f}K'
+    else:
+        return f'{x:.0f}'
+
+def currency(x, pos):
+    if x >= 1e6:
+        return f'{x*1e-6:1.1f}M€'
+    elif x >= 1e3:
+        return f'{x*1e-3:1.0f}K€'
+    else:
+        return f'{x:.0f}€'
+
+def get_top_books_data():
+    """
+    Récupère les données des 10 livres les plus vendus
+    Returns: tuple (list of book names, list of sales quantities)
+    """
+    # Compter les ventes par book_id
+    sales_count = {}
+    
+    with open(ORDERS_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            book_id = row["book_id"]
+            quantity = int(row["quantity"])
+            
+            if book_id in sales_count:
+                sales_count[book_id] += quantity
+            else:
+                sales_count[book_id] = quantity
+    
+    # Trier par nombre de ventes (décroissant) et prendre les 10 premiers
+    top_10_ids = sorted(sales_count.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    # Charger les noms des livres
+    books = load_books()
+    books_dict = {b["id"]: b["name"] for b in books}
+    
+    # Créer les listes finales
+    group_names = []
+    group_orders = []
+    
+    for book_id, count in top_10_ids:
+        book_name = books_dict.get(book_id, f"Livre ID {book_id}")
+        group_names.append(book_name)
+        group_orders.append(count)
+    
+    return group_names, group_orders
+
+def get_yearly_sales_data():
+    """
+    Récupère les montants des ventes annuelles des 10 dernières années
+    Returns: tuple (list of yearly sales amounts, list of years)
+    """
+    from datetime import datetime
+    
+    # Dictionnaire pour stocker les ventes par année
+    sales_by_year = {}
+    
+    with open(SALES_FILE, newline="", encoding="utf-8") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            # Extraire l'année de la date
+            date_str = row["date"]
+            year = datetime.fromisoformat(date_str.replace('+00:00', '')).year
+            total_price = float(row["total_price"])
+            
+            if year in sales_by_year:
+                sales_by_year[year] += total_price
+            else:
+                sales_by_year[year] = total_price
+    
+    # Trier par année (ordre chronologique) et prendre les 10 dernières
+    sorted_years = sorted(sales_by_year.keys())
+    last_10_years = sorted_years[-10:] if len(sorted_years) > 10 else sorted_years
+    
+    # Créer les listes finales (garder les années comme entiers)
+    group_years = last_10_years  # Liste d'entiers
+    group_ysales = [sales_by_year[year] for year in last_10_years]
+    
+    return group_ysales, group_years
+
+group_names, group_orders = get_top_books_data()
+group_mean = np.mean(group_orders) if group_orders else 0
+
+
 #Inscription
 @app.route("/api/register", methods=["POST"])
 def register():
@@ -305,10 +402,11 @@ def delete_books():
     data = request.get_json()
     book_id = str(data.get("book_id"))
     name = str(data.get("book_name")).strip()
-    with open("./data/books.csv", "r", newline="") as infile:
+    # Use the configured BOOKS_FILE path (consistent with DATA_DIR)
+    with open(BOOKS_FILE, "r", newline="", encoding="utf-8") as infile:
         reader = csv.reader(infile)
         rows = [row for row in reader if row[0] != book_id]
-    with open("./data/books.csv", "w", newline="") as outfile:
+    with open(BOOKS_FILE, "w", newline="", encoding="utf-8") as outfile:
         writer = csv.writer(outfile)
         writer.writerows(rows)
         write_log("INFO", "/api/deletebooks", "Item_Deleted", f"book_id={book_id}, name={name}", user_id=request.user_id)
@@ -595,7 +693,7 @@ def stats():
         "total_revenue": total_revenue,
         "total_items": total_items
     }), 200
-    
+
 @app.route("/", methods=["GET"])
 def home():
     return send_from_directory(os.path.dirname(html_file), os.path.basename(html_file))
@@ -612,8 +710,202 @@ def app_js():
 def auth_js():
     return send_from_directory(os.path.dirname(__file__), "auth.js")
 
+
+@app.route("/dashboard")
+def dashboard_page():
+    return render_template("dashboard.html")
+
+
+def _generate_stats_and_charts_payload():
+    book_info = {}
+    if os.path.exists(BOOKS_FILE):
+        with open(BOOKS_FILE, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            try:
+                header = next(reader)
+            except StopIteration:
+                header = []
+            if header:
+                try:
+                    id_idx = header.index("id")
+                    title_idx = header.index("name")
+                    genre_idx = header.index("genre")
+                except ValueError:
+                    id_idx = title_idx = genre_idx = None
+                if id_idx is not None:
+                    for row in reader:
+                        if len(row) <= max(id_idx, title_idx, genre_idx):
+                            continue
+                        book_id = row[id_idx].strip()
+                        title = row[title_idx].strip()
+                        genre = row[genre_idx].strip()
+                        if book_id and title:
+                            book_info[book_id] = {"name": title, "genre": genre}
+
+    # Aggregate sales
+    book_quantities = defaultdict(float)
+    total_revenue = 0.0
+    total_items = 0
+    if os.path.exists(SALES_FILE):
+        with open(SALES_FILE, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            try:
+                next(reader)
+            except StopIteration:
+                pass
+            for row in reader:
+                if len(row) < 4:
+                    continue
+                book_id = row[1].strip()
+                qty_str = row[2].strip()
+                price_str = row[3].strip()
+                if not book_id or not qty_str:
+                    continue
+                try:
+                    quantity = float(qty_str)
+                except ValueError:
+                    continue
+                try:
+                    total_price = float(price_str)
+                except ValueError:
+                    total_price = 0.0
+                book_quantities[book_id] += quantity
+                total_revenue += total_price
+                total_items += int(quantity)
+
+    # Top books
+    book_list = []
+    for book_id, total_qty in book_quantities.items():
+        name = book_info.get(book_id, {}).get("name", book_id)
+        book_list.append((name, total_qty))
+    book_list.sort(key=lambda x: x[1], reverse=True)
+    top_books = book_list[:5]
+
+    plot_top = None
+    if top_books:
+        categories = [name for name, _ in top_books]
+        values = [qty for _, qty in top_books]
+        fig = Figure(figsize=(8, 4))
+        ax = fig.subplots()
+        bars = ax.bar(categories, values, color="skyblue", edgecolor="navy")
+        ax.set_title("Top 5 meilleures ventes de livres")
+        ax.set_xlabel("Livres")
+        ax.set_ylabel("Ventes")
+        ax.tick_params(axis='x', rotation=45)
+        for bar in bars:
+            h = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., h, f"{h:.0f}", ha='center', va='bottom')
+        buf = BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+        plot_top = base64.b64encode(buf.getbuffer()).decode('ascii')
+
+    # Genre chart
+    genre_quantities = defaultdict(float)
+    for book_id, total_qty in book_quantities.items():
+        genre = book_info.get(book_id, {}).get("genre")
+        genre_quantities[genre] += total_qty
+    genre_list = [(genre, qty) for genre, qty in genre_quantities.items()]
+    genre_list.sort(key=lambda x: x[1], reverse=True)
+
+    plot_genre = None
+    if genre_list:
+        genres = [g for g, _ in genre_list]
+        gvals = [v for _, v in genre_list]
+        fig2 = Figure(figsize=(8, 4))
+        ax2 = fig2.subplots()
+        bars2 = ax2.bar(genres, gvals, color="lightgreen", edgecolor="darkgreen")
+        ax2.set_title("Ventes par genre de livre")
+        ax2.set_xlabel("Genres")
+        ax2.set_ylabel("Ventes")
+        ax2.tick_params(axis='x', rotation=45)
+        for bar in bars2:
+            h = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2., h, f"{h:.0f}", ha='center', va='bottom')
+        buf2 = BytesIO()
+        fig2.savefig(buf2, format="png", bbox_inches="tight")
+        buf2.seek(0)
+        plot_genre = base64.b64encode(buf2.getbuffer()).decode('ascii')
+
+    return {
+        "total_revenue": total_revenue,
+        "total_items": total_items,
+        "plot_top_books": plot_top,
+        "plot_by_genre": plot_genre,
+    }
+
+
+@app.route("/api/stats/charts", methods=["GET"])
+@auth_required
+@admin_required
+def stats_charts():
+    data = _generate_stats_and_charts_payload()
+    return jsonify(data), 200
+
 def run_flask():
     app.run(port=5000, debug=True, use_reloader=False)
+
+#Graphiques
+@app.route("/api/chart/top-books", methods=["GET"])
+@auth_required
+def chart_top_books():
+    """Génère le graphique des top ventes et le retourne en base64"""
+    group_names, group_orders = get_top_books_data()
+    
+    if not group_names:
+        return jsonify({"error": "Aucune donnée disponible"}), 404
+    
+    # Créer le graphique
+    plt.style.use('bmh')
+    plt.rcParams.update({'figure.autolayout': True})
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.barh(group_names, group_orders, color='#007bff')
+    labels = ax.get_xticklabels()
+    plt.setp(labels, rotation=45, horizontalalignment='right')
+    
+    ax.set(xlabel='Nombre de ventes', ylabel='Livres', title='Top Des Ventes')
+    ax.xaxis.set_major_formatter(FuncFormatter(amount_convert))
+    
+    # Convertir en base64
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=100)
+    buffer.seek(0)
+    image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    plt.close(fig)
+    
+    return jsonify({"image": f"data:image/png;base64,{image_base64}"}), 200
+
+@app.route("/api/chart/yearly-sales", methods=["GET"])
+@auth_required
+@admin_required
+def chart_yearly_sales():
+    """Génère le graphique des ventes annuelles et le retourne en base64"""
+    group_ysales, group_years = get_yearly_sales_data()
+    
+    if not group_years:
+        return jsonify({"error": "Aucune donnée disponible"}), 404
+    
+    # Créer le graphique
+    plt.style.use('bmh')
+    plt.rcParams.update({'figure.autolayout': True})
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar([str(year) for year in group_years], group_ysales, color='#28a745')
+    labels = ax.get_xticklabels()
+    plt.setp(labels, rotation=45, horizontalalignment='right')
+    
+    ax.set(xlabel='Année', ylabel='Chiffres Produits', title="Chiffres d'Affaires")
+    ax.yaxis.set_major_formatter(FuncFormatter(currency))
+    
+    # Convertir en base64
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=100)
+    buffer.seek(0)
+    image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+    plt.close(fig)
+    
+    return jsonify({"image": f"data:image/png;base64,{image_base64}"}), 200
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_flask, daemon=True)
