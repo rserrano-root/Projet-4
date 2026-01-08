@@ -1,11 +1,11 @@
 id,name,author,genre,price,stock
-1,LoTR,JRR Tolkien,Fantasy,30.0,500
+1,LoTR,JRR Tolkien,Fantasy,30.0,499
 2,1984,George Orwell,Dystopie,30.0,495
 3,The Great Gatsby,F. Scott Fitzgerald,Classics,30.0,350
 4,To Kill a Mockingbird,Harper Lee,Classics,25.0,400
 5,The Catcher in the Rye,J.D. Salinger,Classics,30.0,349
 6,Brave New World,Aldous Huxley,Dystopie,22.0,449
-7,The Hobbit,JRR Tolkien,Fantasy,19.99,600
+7,The Hobbit,JRR Tolkien,Fantasy,19.99,300
 8,Fahrenheit 451,Ray Bradbury,Dystopie,19.0,320
 9,Mobydick,Herman Melville,Classics,28.0,280
 10,The Odyssey,Homer,Classics,24.0,215
